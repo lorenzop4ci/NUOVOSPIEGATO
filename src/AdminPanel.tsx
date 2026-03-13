@@ -112,7 +112,11 @@ export default function AdminPanel() {
   const navigate = useNavigate();
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -845,6 +849,16 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
                 </select>
               </div>
               <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Altezza Logo (px)</label>
+                <input 
+                  type="number" 
+                  value={settings.logo_height || '40'} 
+                  onChange={(e) => handleChange('logo_height', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                  placeholder="40"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Sottotitolo</label>
                 <select 
                   value={settings.header_subtitle_align || 'text-left'} 
@@ -1137,7 +1151,7 @@ function SortableWorkRow({ work, onEdit, onDelete }: { key?: React.Key, work: Wo
   );
 }
 
-function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key, img: any, index: number, onRemove: (i: number) => void, onUpdate: (i: number, data: any) => void }) {
+function SortableImageItem({ img, onRemove, onUpdate }: { key?: React.Key, img: any, onRemove: () => void, onUpdate: (data: any) => void }) {
   const {
     attributes,
     listeners,
@@ -1145,7 +1159,7 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
     transform,
     transition,
     isDragging
-  } = useSortable({ id: img.id || `temp-${index}` });
+  } = useSortable({ id: String(img.id) });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -1169,7 +1183,7 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
           <GripVertical size={18} />
         </button>
         {img.image_url ? (
-          <img src={img.image_url} alt={`Gallery ${index}`} className="w-16 h-16 object-cover rounded-lg" />
+          <img src={img.image_url} alt="Gallery item" className="w-16 h-16 object-cover rounded-lg" />
         ) : (
           <div className="w-16 h-16 bg-gray-100 rounded-lg" />
         )}
@@ -1180,7 +1194,7 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
           className="flex-1 bg-transparent border-none focus:outline-none text-sm text-gray-500 truncate"
         />
         <button 
-          onClick={() => onRemove(index)}
+          onClick={onRemove}
           className="w-8 h-8 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-100 hover:text-red-600 hover:border-red-200 transition-colors"
         >
           <Trash2 size={14} />
@@ -1191,21 +1205,21 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
           type="text" 
           placeholder="Title (optional)" 
           value={img.title || ''} 
-          onChange={(e) => onUpdate(index, { title: e.target.value })}
+          onChange={(e) => onUpdate({ title: e.target.value })}
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
         />
         <input 
           type="text" 
           placeholder="Link URL (optional)" 
           value={img.link || ''} 
-          onChange={(e) => onUpdate(index, { link: e.target.value })}
+          onChange={(e) => onUpdate({ link: e.target.value })}
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
         />
       </div>
       <textarea 
         placeholder="Description (optional)" 
         value={img.description || ''} 
-        onChange={(e) => onUpdate(index, { description: e.target.value })}
+        onChange={(e) => onUpdate({ description: e.target.value })}
         rows={2}
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors resize-none"
       />
@@ -1280,9 +1294,11 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
 
   const handleAddImage = () => {
     if (!newImageUrl.trim()) return;
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setGalleryImages(prev => [
       ...prev, 
       { 
+        id: tempId,
         image_url: newImageUrl, 
         title: newImageTitle,
         description: newImageDescription,
@@ -1296,22 +1312,28 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
     setNewImageLink('');
   };
 
-  const handleRemoveImage = (index: number) => {
-    setGalleryImages(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveImage = (id: string) => {
+    setGalleryImages(prev => prev.filter(img => String(img.id) !== id));
   };
 
   const handleImageDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = galleryImages.findIndex(img => (img.id || `temp-${galleryImages.indexOf(img)}`) === active.id);
-    const newIndex = galleryImages.findIndex(img => (img.id || `temp-${galleryImages.indexOf(img)}`) === over.id);
+    const oldIndex = galleryImages.findIndex(img => String(img.id) === String(active.id));
+    const newIndex = galleryImages.findIndex(img => String(img.id) === String(over.id));
 
-    setGalleryImages(arrayMove(galleryImages, oldIndex, newIndex));
+    if (oldIndex !== -1 && newIndex !== -1) {
+      setGalleryImages(arrayMove(galleryImages, oldIndex, newIndex));
+    }
   };
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -1329,35 +1351,54 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
       let workId = work?.id;
       
       if (workId) {
-        const { error } = await supabase.from('works').update(formData).eq('id', workId);
+        const { id, created_at, ...updateData } = formData;
+        const { error } = await supabase.from('works').update(updateData).eq('id', workId);
         if (error) throw error;
       } else {
         const { data, error } = await supabase.from('works').insert([formData]).select().single();
         if (error) throw error;
         workId = data.id;
       }
-      setAdminMessage({ text: 'Lavoro salvato con successo!', type: 'success' });
 
       // Handle gallery images
       if (workId) {
-        // Delete existing images
-        await supabase.from('work_images').delete().eq('work_id', workId);
+        console.log('Starting gallery save for work:', workId);
+        
+        // Delete existing images first
+        const { error: deleteError } = await supabase
+          .from('work_images')
+          .delete()
+          .eq('work_id', workId);
+          
+        if (deleteError) {
+          console.error('Error deleting old gallery images:', deleteError);
+        }
         
         // Insert new images
         if (galleryImages.length > 0) {
           const imagesToInsert = galleryImages.map((img, index) => ({
             work_id: workId,
             image_url: img.image_url,
-            title: img.title,
-            description: img.description,
-            link: img.link,
-            display_order: index
+            title: img.title || null,
+            description: img.description || null,
+            link: img.link || null,
+            display_order: index // Assicurati che il database abbia questa colonna
           }));
-          const { error: imgError } = await supabase.from('work_images').insert(imagesToInsert);
-          if (imgError) throw imgError;
+          
+          console.log('Inserting gallery images:', imagesToInsert);
+          
+          const { error: imgError } = await supabase
+            .from('work_images')
+            .insert(imagesToInsert);
+            
+          if (imgError) {
+            console.error('Error inserting gallery images:', imgError);
+            throw new Error('Errore salvataggio galleria: ' + imgError.message);
+          }
         }
       }
 
+      setAdminMessage({ text: 'Lavoro salvato con successo!', type: 'success' });
       onClose();
     } catch (err: any) {
       setAdminMessage({ text: 'Errore durante il salvataggio: ' + err.message, type: 'error' });
@@ -1462,20 +1503,19 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
                     onDragEnd={handleImageDragEnd}
                   >
                     <SortableContext 
-                      items={galleryImages.map((img, i) => img.id || `temp-${i}`)}
+                      items={galleryImages.map(img => String(img.id))}
                       strategy={verticalListSortingStrategy}
                     >
                       <div className="flex flex-col gap-4">
-                        {galleryImages.map((img, index) => (
+                        {galleryImages.map((img) => (
                           <SortableImageItem 
-                            key={img.id || `temp-${index}`}
+                            key={String(img.id)}
                             img={img}
-                            index={index}
-                            onRemove={handleRemoveImage}
-                            onUpdate={(i, data) => {
-                              const newImages = [...galleryImages];
-                              newImages[i] = { ...newImages[i], ...data };
-                              setGalleryImages(newImages);
+                            onRemove={() => handleRemoveImage(String(img.id))}
+                            onUpdate={(data) => {
+                              setGalleryImages(prev => prev.map(item => 
+                                item.id === img.id ? { ...item, ...data } : item
+                              ));
                             }}
                           />
                         ))}

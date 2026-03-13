@@ -1,11 +1,10 @@
-import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "motion/react";
-import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail } from "lucide-react";
+import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail, Lock } from "lucide-react";
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
-import { Lock } from 'lucide-react';
 import { supabase, Work } from './lib/supabase';
 
-const ParallaxImage = ({ src, alt, className }: { src: string, alt?: string, className?: string }) => {
+const ParallaxImage = React.memo(({ src, alt, className }: { src: string, alt?: string, className?: string }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -24,15 +23,16 @@ const ParallaxImage = ({ src, alt, className }: { src: string, alt?: string, cla
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
               draggable="false"
+              loading="eager"
             />
           ) : (
-            <div className="w-full h-full bg-gray-100" />
+            <div className="w-full h-full bg-transparent" />
           )}
         </div>
       </motion.div>
     </div>
   );
-};
+});
 
 const Navbar = ({ onMenuClick, settings }: { onMenuClick: () => void, settings: any }) => {
   const [scrolled, setScrolled] = useState(false);
@@ -105,9 +105,9 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
         </div>
       </div>
       <motion.div style={{ y: textY }} className={`absolute top-0 left-0 w-full h-screen flex flex-col justify-end p-6 md:p-16 lg:p-24 pb-24 md:pb-32 pointer-events-none ${data?.title_align === 'center' ? 'items-center text-center' : 'items-start text-left'}`}>
-        {data?.subtitle && (
+        {(settings.hero_subtitle || data?.subtitle) && (
           <div className="text-sm md:text-base tracking-[0.3em] uppercase mb-6 md:mb-8 font-bold opacity-80 text-white pointer-events-auto">
-            {data.subtitle}
+            {settings.hero_subtitle || data.subtitle}
           </div>
         )}
         <motion.h1 
@@ -116,7 +116,7 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
           transition={{ duration: 1, delay: 0.2 }}
           className="text-white font-serif text-5xl md:text-7xl lg:text-8xl leading-[1.1] max-w-5xl pointer-events-auto"
         >
-          {data?.title || ""}
+          {settings.hero_title || data?.title || ""}
         </motion.h1>
         {data?.description && (
           <p className="mt-6 text-lg md:text-xl text-gray-300 max-w-2xl pointer-events-auto">
@@ -512,48 +512,17 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
   const padding = useTransform(entranceProgress, [0.4, 1], ["24px", "0px"]);
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isWrapping, setIsWrapping] = useState(false);
 
   const isDraggingRef = useRef(false);
 
-  // Double the projects to allow seamless looping
-  const displayProjects = projects.length > 1 ? [...projects, ...projects] : projects;
-
   const handleNext = () => {
     if (projects.length <= 1) return;
-    
-    if (activeIndex === projects.length - 1) {
-      // Move to the first item of the second set
-      setActiveIndex(projects.length);
-      // Then silently reset to the first item of the first set
-      setTimeout(() => {
-        setIsWrapping(true);
-        setActiveIndex(0);
-        setTimeout(() => setIsWrapping(false), 50);
-      }, 800); // Wait for animation to finish
-    } else if (activeIndex >= projects.length) {
-      // We are in the second set, just continue
-      setActiveIndex(prev => (prev + 1) % displayProjects.length);
-    } else {
-      setActiveIndex(prev => prev + 1);
-    }
+    setActiveIndex(prev => prev + 1);
   };
 
   const handlePrev = () => {
     if (projects.length <= 1) return;
-    
-    if (activeIndex === 0) {
-      // Jump to the first item of the second set instantly
-      setIsWrapping(true);
-      setActiveIndex(projects.length);
-      // Then animate to the last item of the first set
-      setTimeout(() => {
-        setIsWrapping(false);
-        setActiveIndex(projects.length - 1);
-      }, 50);
-    } else {
-      setActiveIndex(prev => prev - 1);
-    }
+    setActiveIndex(prev => prev - 1);
   };
 
   const handleDragEnd = (e: any, { offset, velocity }: any) => {
@@ -609,6 +578,11 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
     }
   };
 
+  const safeActiveIndex = projects && projects.length > 0 ? ((activeIndex % projects.length) + projects.length) % projects.length : 0;
+  const currentProject = projects && projects.length > 0 ? projects[safeActiveIndex] : null;
+
+  if (!projects || projects.length === 0) return null;
+
   return (
     <>
       <div className="relative w-full h-0 z-0">
@@ -647,104 +621,121 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
 
       {/* Images Layer */}
       <div className="absolute inset-x-0 top-0 bottom-4 md:bottom-6">
-            {displayProjects.map((proj, i) => {
-              const rel = i - activeIndex;
-              if (rel < -1 || rel > 4) return null;
-              const styles = getStyles(rel);
+            {(() => {
+              const items = [];
+              for (let rel = -1; rel <= 4; rel++) {
+                const index = activeIndex + rel;
+                const projectIndex = ((index % projects.length) + projects.length) % projects.length;
+                const proj = projects[projectIndex];
+                if (proj) {
+                  const styles = getStyles(rel);
+                  items.push(
+                    <motion.div
+                      key={index}
+                      initial={false}
+                      animate={styles}
+                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing group select-none"
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.1}
+                      onDragStart={() => {
+                        isDraggingRef.current = true;
+                      }}
+                      onDragEnd={handleDragEnd}
+                      onTap={() => {
+                        if (!isDraggingRef.current && rel === 0 && onOpenLightbox) {
+                          onOpenLightbox(proj);
+                        }
+                      }}
+                    >
+                      <ParallaxImage 
+                        src={proj.cover_image_url || proj.image || null} 
+                        alt={proj.title} 
+                        className="w-full h-full pointer-events-none bg-transparent"
+                      />
+                      
+                      <motion.div 
+                        animate={{ opacity: rel === 0 ? 1 : 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 bg-black/20 pointer-events-none" 
+                      />
+                      
+                      <motion.div 
+                        animate={{ opacity: rel > 0 ? 1 : 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute inset-0 bg-gradient-to-b from-redd-light/80 via-transparent to-transparent pointer-events-none" 
+                      />
 
-              return (
-                <motion.div
-                  key={i}
-                  initial={false}
-                  animate={styles}
-                  transition={isWrapping ? { duration: 0 } : { duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                  className="absolute overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing group select-none"
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.1}
-                  onDragStart={() => {
-                    isDraggingRef.current = true;
-                  }}
-                  onDragEnd={handleDragEnd}
-                  onTap={() => {
-                    if (!isDraggingRef.current && rel === 0 && onOpenLightbox) {
-                      onOpenLightbox(proj);
-                    }
-                  }}
-                >
-              <ParallaxImage 
-                src={proj.cover_image_url || proj.image || null} 
-                alt={proj.title} 
-                className="w-full h-full pointer-events-none bg-gray-100"
-              />
-              
-              <motion.div 
-                animate={{ opacity: rel === 0 ? 1 : 0 }}
-                transition={{ duration: 0.4 }}
-                className="absolute inset-0 bg-black/20 pointer-events-none" 
-              />
-              
-              <motion.div 
-                animate={{ opacity: rel > 0 ? 1 : 0 }}
-                transition={{ duration: 0.4 }}
-                className="absolute inset-0 bg-gradient-to-b from-redd-light/80 via-transparent to-transparent pointer-events-none" 
-              />
-
-              {/* Hover dark gradient for readability */}
-              <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-              <motion.div 
-                animate={{ 
-                  opacity: rel === 0 ? 1 : 0,
-                  x: rel === 0 ? 0 : (rel < 0 ? -50 : 50)
-                }}
-                transition={{ duration: 0.6, delay: rel === 0 ? 0.2 : 0 }}
-                className="absolute inset-0 p-8 md:p-16 flex flex-col justify-between text-white pointer-events-none"
-              >
-                <div className="text-xl font-bold tracking-widest uppercase opacity-0">REDD</div>
-                
-                <div className="my-auto">
-                  <h2 className="text-5xl md:text-7xl lg:text-[6rem] font-serif leading-tight drop-shadow-lg max-w-4xl">
-                    {proj.title}
-                  </h2>
-                  <p className="mt-4 text-lg md:text-xl max-w-2xl line-clamp-2 drop-shadow-md text-gray-200">
-                    {proj.description_top || proj.description}
-                  </p>
-                </div>
-
-                <div>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onOpenLightbox) onOpenLightbox(proj);
-                    }} 
-                    className="inline-flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity pointer-events-auto cursor-pointer"
-                  >
-                    Visit project <ArrowRight size={16} />
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          );
-        })}
+                      {/* Hover dark gradient for readability - only for active image */}
+                      {rel === 0 && (
+                        <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                      )}
+                    </motion.div>
+                  );
+                }
+              }
+              return items;
+            })()}
       </div>
 
-      {/* Navigation Hint Arrow */}
-      {projects && projects.length > 1 && (
-        <div className="absolute top-1/2 left-[calc(78vw+2rem)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto flex flex-col items-center gap-2 opacity-80 hover:opacity-100 transition-opacity cursor-pointer z-50" onClick={handleNext}>
-          <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg text-redd-dark">
-            <ArrowRight size={20} />
-          </div>
-          <span className="text-xs uppercase tracking-widest font-bold text-redd-dark bg-white/90 px-2 py-1 rounded">Drag or Click</span>
-        </div>
-      )}
+      {/* Stable Text Overlay - Moved outside the loop to prevent jump during wrap */}
+      <div className="absolute left-0 top-8 bottom-4 md:bottom-6 w-[65vw] pointer-events-none z-40">
+        <AnimatePresence initial={false}>
+          <motion.div 
+            key={safeActiveIndex}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-0 p-8 md:p-16 flex flex-col justify-between text-white"
+          >
+            <div className="text-xl font-bold tracking-widest uppercase opacity-0">REDD</div>
+            
+            <div className="my-auto">
+              <h2 className="text-5xl md:text-7xl lg:text-[6rem] font-serif leading-tight drop-shadow-lg max-w-4xl">
+                {currentProject?.title}
+              </h2>
+              <p className="mt-4 text-lg md:text-xl max-w-2xl line-clamp-2 drop-shadow-md text-gray-200">
+                {currentProject?.description_top || currentProject?.description}
+              </p>
+            </div>
 
-      {/* UI Overlay (Buttons) */}
-      <div className="absolute inset-x-0 bottom-0 h-[8rem] pointer-events-none z-50 flex items-start pt-8">
+            <div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onOpenLightbox) onOpenLightbox(currentProject);
+                }} 
+                className="inline-flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity pointer-events-auto cursor-pointer"
+              >
+                Visit project <ArrowRight size={16} />
+              </button>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* UI Overlay (Buttons, Hint, Counter) */}
+      <div className="absolute inset-x-0 bottom-0 h-[12rem] pointer-events-none z-50 flex items-end pb-12">
         <div className="w-[calc(65vw+2rem)]" />
-        <div className="flex-1 flex justify-center items-center pr-8 md:pr-12 pointer-events-auto">
+        <div className="flex-1 flex flex-col justify-center items-center pr-8 md:pr-12 pointer-events-auto gap-4">
+          {/* Navigation Hint Arrow - Repositioned lower and centered */}
+          {projects && projects.length > 1 && (
+            <div 
+              className="flex flex-col items-center gap-2 opacity-80 hover:opacity-100 transition-opacity cursor-pointer" 
+              onClick={handleNext}
+            >
+              <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg text-redd-dark">
+                <ArrowRight size={20} />
+              </div>
+              <span className="text-xs uppercase tracking-widest font-bold text-redd-dark bg-white/90 px-2 py-1 rounded">Drag or Click</span>
+            </div>
+          )}
+          
+          {/* Counter - Centered horizontally under the hint */}
           <div className="text-xl md:text-2xl font-sans tracking-tight text-redd-dark/70">
-            {projects && projects.length > 0 ? `${activeIndex + 1}/${projects.length}` : '0/0'}
+            {projects && projects.length > 0 ? `${safeActiveIndex + 1}/${projects.length}` : '0/0'}
           </div>
         </div>
       </div>
@@ -857,20 +848,10 @@ const LetsTalk = ({ data, settings }: { data: any, settings: any }) => {
           transition={{ duration: 1 }}
           className={`${titleSize} font-serif leading-none hover:text-redd-accent transition-colors cursor-pointer max-w-6xl relative z-10`}
         >
-          {settings?.section3_title_link ? (
-            <a href={settings.section3_title_link} target="_blank" rel="noopener noreferrer">
-              {data?.title ? (
-                <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
-              ) : (
-                <span className="opacity-0">.</span>
-              )}
-            </a>
+          {data?.title ? (
+            <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
           ) : (
-            data?.title ? (
-              <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
-            ) : (
-              <span className="opacity-0">.</span>
-            )
+            <span className="opacity-0">.</span>
           )}
         </motion.h2>
  
@@ -964,16 +945,8 @@ const Footer = ({ settings }: { settings: any }) => {
           {settings?.footer_copyright || `© ${new Date().getFullYear()} LORENZO PACI - ALL RIGHTS RESERVED`}
         </div>
         <div className="flex flex-col md:flex-row gap-6 items-center">
-          {settings.contact_email && (
-            <a href={`mailto:${settings.contact_email}`} className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 transition-opacity">
-              {settings.contact_email}
-            </a>
-          )}
-          {settings.contact_phone && (
-            <a href={`tel:${settings.contact_phone.replace(/\s+/g, '')}`} className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 transition-opacity">
-              {settings.contact_phone}
-            </a>
-          )}
+          <a href={`mailto:${settings.contact_email}`} className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 transition-opacity">{settings.contact_email}</a>
+          <a href={`tel:${settings.contact_phone?.replace(/\s+/g, '')}`} className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 transition-opacity">{settings.contact_phone}</a>
           <span className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 cursor-pointer transition-opacity">Privacy Policy</span>
           <span className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 cursor-pointer transition-opacity">Cookie Policy</span>
         </div>
@@ -1175,25 +1148,25 @@ const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, set
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
-              className="flex flex-col md:flex-row justify-between gap-8 text-sm shrink-0 mt-12 border-t border-black/5 pt-8"
+              className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm shrink-0 mt-8"
             >
-              <div className="flex-1">
+              <div>
                 {settings.contact_email && (
-                  <a href={`mailto:${settings.contact_email}`} className="block font-semibold text-lg md:text-xl mb-2 hover:text-redd-accent transition-colors break-all">
+                  <a href={`mailto:${settings.contact_email}`} className="block font-semibold text-lg mb-2 hover:text-redd-accent transition-colors">
                     {settings.contact_email}
                   </a>
                 )}
                 {settings.contact_phone && (
-                  <a href={`tel:${settings.contact_phone.replace(/\s+/g, '')}`} className="block font-semibold text-lg md:text-xl hover:text-redd-accent transition-colors">
+                  <a href={`tel:${settings.contact_phone.replace(/\s+/g, '')}`} className="block font-semibold text-lg hover:text-redd-accent transition-colors">
                     {settings.contact_phone}
                   </a>
                 )}
               </div>
-              <div className="flex-1 md:text-right">
+              <div className="flex gap-12">
                 {settings.contact_address && (
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Indirizzo</p>
-                    <p className="whitespace-pre-line text-base leading-relaxed">{settings.contact_address}</p>
+                    <p className="text-gray-500 mb-1">Indirizzo</p>
+                    <p className="whitespace-pre-line">{settings.contact_address}</p>
                   </div>
                 )}
               </div>
@@ -1304,11 +1277,14 @@ export default function App() {
         }
       } catch (err: any) {
         console.error("Fetch error:", err);
-        if (!err.message?.includes('settings') && !err.message?.includes('works')) {
+        if (isMounted) {
           setError(`Errore di connessione: ${err.message || "Impossibile connettersi a Supabase"}`);
         }
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          console.log("Loading finished");
+        }
       }
     }
     fetchData();

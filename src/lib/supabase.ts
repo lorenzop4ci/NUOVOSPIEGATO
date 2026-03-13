@@ -33,6 +33,9 @@ export type WorkImage = {
   id: string;
   work_id: string;
   image_url: string;
+  title?: string;
+  description?: string;
+  link?: string;
   display_order: number;
   created_at: string;
 };

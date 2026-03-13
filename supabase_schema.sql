@@ -13,6 +13,7 @@ CREATE TABLE works (
   description_top TEXT,
   description_bottom TEXT,
   group_name TEXT NOT NULL, -- es: 'galleria 3', 'sezione 1'
+  display_order INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -21,6 +22,9 @@ CREATE TABLE work_images (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   work_id UUID REFERENCES works(id) ON DELETE CASCADE,
   image_url TEXT NOT NULL,
+  title TEXT,
+  description TEXT,
+  link TEXT,
   display_order INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
