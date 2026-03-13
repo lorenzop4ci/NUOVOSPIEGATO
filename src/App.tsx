@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "motion/react";
-import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail } from "lucide-react";
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import { Lock } from 'lucide-react';
@@ -34,7 +34,7 @@ const ParallaxImage = ({ src, alt, className }: { src: string, alt?: string, cla
   );
 };
 
-const Navbar = ({ onMenuClick }: { onMenuClick: () => void }) => {
+const Navbar = ({ onMenuClick, settings }: { onMenuClick: () => void, settings: any }) => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -55,12 +55,24 @@ const Navbar = ({ onMenuClick }: { onMenuClick: () => void }) => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
-        className="flex flex-col hover:opacity-80 transition-opacity"
+        className="flex flex-col hover:opacity-80 transition-opacity w-full"
       >
-        <div className="text-xl font-bold tracking-tight uppercase">LORENZO PACI</div>
-        <div className="text-[10px] tracking-[0.2em] uppercase opacity-70">CREATIVE VISIONARY</div>
+        {settings.header_logo ? (
+          <div className={`w-full flex ${settings.header_title_align === 'text-center' ? 'justify-center' : settings.header_title_align === 'text-right' ? 'justify-end' : 'justify-start'}`}>
+            <img src={settings.header_logo} alt="Logo" className={`h-10 w-auto object-contain ${!scrolled ? 'brightness-0 invert' : ''}`} />
+          </div>
+        ) : (
+          <div className="w-full">
+            <div className={`${settings.header_title_size || 'text-xl'} font-bold tracking-tight uppercase ${settings.header_title_align || 'text-left'}`}>
+              {settings.header_title || "LORENZO PACI"}
+            </div>
+            <div className={`${settings.header_subtitle_size || 'text-[10px]'} tracking-[0.2em] uppercase opacity-70 ${settings.header_subtitle_align || 'text-left'}`}>
+              {settings.header_subtitle || "CREATIVE VISIONARY"}
+            </div>
+          </div>
+        )}
       </Link>
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-6 absolute right-6 md:right-12">
         <button onClick={onMenuClick} className="flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
           Menu <Menu size={18} />
         </button>
@@ -69,7 +81,7 @@ const Navbar = ({ onMenuClick }: { onMenuClick: () => void }) => {
   );
 };
 
-const Hero = ({ data }: { data: any }) => {
+const Hero = ({ data, settings }: { data: any, settings: any }) => {
   const { scrollY } = useScroll();
   const scale = useTransform(scrollY, [0, 1500], [1, 1.3]);
   const overlayOpacity = useTransform(scrollY, [0, 800], [0, 0.8]);
@@ -124,7 +136,7 @@ const Hero = ({ data }: { data: any }) => {
   );
 };
 
-const Process = ({ data }: { data: any }) => {
+const Process = ({ data, settings }: { data: any, settings: any }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -142,10 +154,10 @@ const Process = ({ data }: { data: any }) => {
   const borderRadius = useTransform(entranceProgress, [0.4, 1], ["48px", "0px"]);
 
   const steps = [
-    { title: data?.step1_title || "We ground.", desc: data?.step1_desc || "Onderzoek en analyse vormen de basis van elk succesvol project.", link: "/gallery/galleria-3" },
-    { title: data?.step2_title || "We shape.", desc: data?.step2_desc || "Vormgeving van ruimte en structuur met oog voor detail.", link: "/gallery/galleria-2" },
-    { title: data?.step3_title || "We plant.", desc: data?.step3_desc || "Plannen worden plekken. Materialen gaan leven.", link: "/gallery/galleria-1" },
-    { title: data?.step4_title || "We grow.", desc: data?.step4_desc || "Onderhoud en ontwikkeling over tijd voor een blijvend resultaat.", link: "/about" }
+    { title: settings?.col1_title || "", desc: settings?.col1_text || "", link: "/gallery/galleria-3" },
+    { title: settings?.col2_title || "", desc: settings?.col2_text || "", link: "/gallery/galleria-2" },
+    { title: settings?.col3_title || "", desc: settings?.col3_text || "", link: "/gallery/galleria-1" },
+    { title: settings?.col4_title || "", desc: settings?.col4_text || "", link: "/about" }
   ];
 
   return (
@@ -791,7 +803,7 @@ const Team = () => {
   );
 };
 
-const LetsTalk = ({ data }: { data: any }) => {
+const LetsTalk = ({ data, settings }: { data: any, settings: any }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -805,6 +817,10 @@ const LetsTalk = ({ data }: { data: any }) => {
   });
 
   const padding = useTransform(entranceProgress, [0.4, 1], ["24px", "0px"]);
+
+  const titleSize = settings?.section3_title_size || 'text-6xl md:text-8xl lg:text-[10rem]';
+  const subtitleSize = settings?.section3_subtitle_size || 'text-sm';
+  const descSize = settings?.section3_desc_size || 'text-lg md:text-xl';
 
   return (
     <>
@@ -830,8 +846,8 @@ const LetsTalk = ({ data }: { data: any }) => {
           </div>
         </motion.div>
         
-        <p className="text-sm uppercase tracking-widest text-gray-500 mb-6 font-bold relative z-10">
-          {data?.subtitle || "Klaar voor een nieuw project?"}
+        <p className={`${subtitleSize} uppercase tracking-widest text-gray-500 mb-6 font-bold relative z-10`}>
+          {data?.subtitle || ""}
         </p>
         
         <motion.h2 
@@ -839,17 +855,27 @@ const LetsTalk = ({ data }: { data: any }) => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 1 }}
-          className="text-6xl md:text-8xl lg:text-[10rem] font-serif leading-none hover:text-redd-accent transition-colors cursor-pointer max-w-6xl relative z-10"
+          className={`${titleSize} font-serif leading-none hover:text-redd-accent transition-colors cursor-pointer max-w-6xl relative z-10`}
         >
-          {data?.title ? (
-            <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
+          {settings?.section3_title_link ? (
+            <a href={settings.section3_title_link} target="_blank" rel="noopener noreferrer">
+              {data?.title ? (
+                <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
+              ) : (
+                <span className="opacity-0">.</span>
+              )}
+            </a>
           ) : (
-            <>Let's <span className="italic">talk</span></>
+            data?.title ? (
+              <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
+            ) : (
+              <span className="opacity-0">.</span>
+            )
           )}
         </motion.h2>
-
+ 
         {data?.description && (
-          <p className="mt-8 text-lg md:text-xl text-gray-600 max-w-2xl relative z-10">
+          <p className={`mt-8 ${descSize} text-gray-600 max-w-2xl relative z-10`}>
             {data.description}
           </p>
         )}
@@ -869,66 +895,94 @@ const LetsTalk = ({ data }: { data: any }) => {
   );
 };
 
-const Footer = () => {
+const Footer = ({ settings }: { settings: any }) => {
   return (
-    <footer className="w-full bg-[#161a1d] text-[#8e9299] pt-24 md:pt-32 pb-4 px-6 md:px-16 lg:px-24 flex flex-col justify-center relative z-50">
-      <div className="flex flex-col md:flex-row justify-between items-center w-full max-w-7xl mx-auto mb-8 md:mb-10 gap-12 md:gap-0">
+    <footer className="w-full bg-[#161a1d] text-[#8e9299] pt-24 md:pt-32 pb-12 px-6 md:px-16 lg:px-24 flex flex-col justify-center relative z-50">
+      <div className="flex flex-col md:flex-row justify-between items-start w-full max-w-7xl mx-auto mb-16 gap-12 md:gap-0">
         
-        {/* Left Column */}
-        <div className="flex flex-col gap-6 text-center md:text-left text-sm tracking-[0.2em] uppercase mt-12 md:mt-16 flex-1">
-          <a href="#" className="hover:text-white transition-colors">Graphic</a>
-          <a href="#" className="hover:text-white transition-colors">Photo</a>
-          <a href="#" className="hover:text-white transition-colors">Project</a>
+        {/* Left Column - Navigation */}
+        <div className="flex flex-col gap-4 text-left flex-1">
+          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20 mb-4">Navigation</h4>
+          <Link to="/" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Home</Link>
+          <Link to="/about" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">About</Link>
+          <Link to="/contact" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Contact</Link>
         </div>
 
-        {/* Center Column */}
-        <div className="flex flex-col items-center justify-center flex-1">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-2">
-            LORENZO PACI
-          </h2>
-          <p className="text-xs tracking-[0.3em] uppercase mb-6">
-            Creative Visionary
-          </p>
+        {/* Center Column - Brand */}
+        <div className="flex flex-col flex-1 w-full">
+          <div className={`w-full ${settings?.footer_title_align || 'text-center'}`}>
+            <h2 className={`${settings?.footer_title_size || 'text-5xl'} font-bold tracking-tight text-white mb-2 uppercase leading-none`}>
+              {settings?.footer_title || settings?.header_title || "LORENZO PACI"}
+            </h2>
+            <p className={`${settings?.footer_subtitle_size || 'text-xs'} tracking-[0.3em] uppercase mb-8 text-[#8e9299]`}>
+              {settings?.footer_subtitle || settings?.header_subtitle || "Creative Visionary"}
+            </p>
+          </div>
           
-          <div className="flex items-center gap-6 mb-12">
-            <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white">
-              <Instagram size={16} />
-            </a>
-            <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white">
-              <Youtube size={16} />
-            </a>
-            <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white">
-              <Facebook size={16} />
-            </a>
-            <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white">
-              <MessageCircle size={16} />
-            </a>
+          <div className="flex items-center justify-center gap-6 mb-12">
+            {settings?.social_instagram && (
+              <a href={settings.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white">
+                <Instagram size={16} />
+              </a>
+            )}
+            {settings?.social_youtube && (
+              <a href={settings.social_youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white">
+                <Youtube size={16} />
+              </a>
+            )}
+            {settings?.social_linkedin && (
+              <a href={settings.social_linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white">
+                <Linkedin size={16} />
+              </a>
+            )}
+            {settings?.contact_email && (
+              <a href={`mailto:${settings.contact_email}`} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white">
+                <Mail size={16} />
+              </a>
+            )}
           </div>
 
-          <Link to="/admin" className="hover:text-white transition-colors flex items-center justify-center gap-2 text-sm tracking-[0.2em] uppercase">
-            <Lock size={14} /> Admin Panel
-          </Link>
+          <div className="flex justify-center">
+            <Link to="/admin" className="hover:text-white transition-colors flex items-center justify-center gap-2 text-[10px] tracking-[0.2em] uppercase opacity-50 hover:opacity-100">
+              <Lock size={12} /> Admin Panel
+            </Link>
+          </div>
         </div>
 
-        {/* Right Column */}
-        <div className="flex flex-col gap-6 text-center md:text-right text-sm tracking-[0.2em] uppercase mt-12 md:mt-16 flex-1">
-          <a href="#" className="hover:text-white transition-colors">Client Area</a>
-          <a href="#" className="hover:text-white transition-colors">Bio</a>
-          <a href="#" className="hover:text-white transition-colors">Privacy & Policy</a>
+        {/* Right Column - Work Categories */}
+        <div className="flex flex-col gap-4 text-right flex-1 w-full">
+          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20 mb-4">Work</h4>
+          <Link to="/work?category=FILM" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Film</Link>
+          <Link to="/work?category=PERSONAGGI" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Personaggi</Link>
+          <Link to="/work?category=YOUTUBE" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">YouTube</Link>
         </div>
 
       </div>
 
-      <div className="w-full max-w-7xl mx-auto border-t border-white/10 pt-4 text-center">
-        <p className="text-[10px] tracking-widest uppercase opacity-50">
-          © 2025 MADE WITH LOVE IN MARCHE - LORENZ.PACI@GMAIL.COM - ANCONA|MARCHE|ITALIA - 3208130419
-        </p>
+      <div className="w-full max-w-7xl mx-auto pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="text-[10px] tracking-[0.2em] uppercase opacity-40">
+          {settings?.footer_copyright || `© ${new Date().getFullYear()} LORENZO PACI - ALL RIGHTS RESERVED`}
+        </div>
+        <div className="flex flex-col md:flex-row gap-6 items-center">
+          {settings.contact_email && (
+            <a href={`mailto:${settings.contact_email}`} className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 transition-opacity">
+              {settings.contact_email}
+            </a>
+          )}
+          {settings.contact_phone && (
+            <a href={`tel:${settings.contact_phone.replace(/\s+/g, '')}`} className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 transition-opacity">
+              {settings.contact_phone}
+            </a>
+          )}
+          <span className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 cursor-pointer transition-opacity">Privacy Policy</span>
+          <span className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 cursor-pointer transition-opacity">Cookie Policy</span>
+        </div>
       </div>
     </footer>
   );
 };
 
-const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any) => void }) => {
+const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, settings }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any) => void; settings: any }) => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [expandedSubItem, setExpandedSubItem] = useState<string | null>(null);
 
@@ -985,7 +1039,7 @@ const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox }: {
             <div className="flex justify-between items-center shrink-0">
               <Link to="/" onClick={onClose} className="text-xl font-medium tracking-tight uppercase hover:opacity-80 transition-opacity">LORENZO PACI</Link>
               <button onClick={onClose} className="md:hidden flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity bg-white px-4 py-2 rounded-full shadow-sm">
-                <X size={16} /> Sluiten
+                <X size={16} /> CHIUDI
               </button>
             </div>
 
@@ -1121,38 +1175,48 @@ const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox }: {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm shrink-0 mt-8"
+              className="flex flex-col md:flex-row justify-between gap-8 text-sm shrink-0 mt-12 border-t border-black/5 pt-8"
             >
-              <div>
-                <p className="font-semibold text-lg mb-2">info@lorenzopaci.com</p>
-                <p className="font-semibold text-lg">+39 123 456 7890</p>
+              <div className="flex-1">
+                {settings.contact_email && (
+                  <a href={`mailto:${settings.contact_email}`} className="block font-semibold text-lg md:text-xl mb-2 hover:text-redd-accent transition-colors break-all">
+                    {settings.contact_email}
+                  </a>
+                )}
+                {settings.contact_phone && (
+                  <a href={`tel:${settings.contact_phone.replace(/\s+/g, '')}`} className="block font-semibold text-lg md:text-xl hover:text-redd-accent transition-colors">
+                    {settings.contact_phone}
+                  </a>
+                )}
               </div>
-              <div className="flex gap-12">
-                <div>
-                  <p className="text-gray-500 mb-1">Studio Roma</p>
-                  <p>Via Roma 123</p>
-                  <p>00100 Roma</p>
-                  <a href="#" className="flex items-center gap-1 mt-2 font-medium hover:text-redd-accent transition-colors">
-                    Routebeschrijving <ArrowUpRight size={14} />
-                  </a>
-                </div>
-                <div>
-                  <p className="text-gray-500 mb-1">Studio Milano</p>
-                  <p>Via Milano 45</p>
-                  <p>20100 Milano</p>
-                  <a href="#" className="flex items-center gap-1 mt-2 font-medium hover:text-redd-accent transition-colors">
-                    Routebeschrijving <ArrowUpRight size={14} />
-                  </a>
-                </div>
+              <div className="flex-1 md:text-right">
+                {settings.contact_address && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Indirizzo</p>
+                    <p className="whitespace-pre-line text-base leading-relaxed">{settings.contact_address}</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
 
-          <div className="hidden md:block w-1/2 h-full relative bg-[#161a1d]">
-            {/* Background image removed as per user request for empty backgrounds */}
+          <div className="hidden md:block w-1/2 h-full relative bg-[#161a1d] overflow-hidden">
+            {settings.menu_image ? (
+              <motion.img 
+                initial={{ scale: 1.1, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                src={settings.menu_image} 
+                alt="Menu background" 
+                className="w-full h-full object-cover opacity-60"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-full h-full bg-black/20" />
+            )}
             <div className="absolute top-12 right-12">
               <button onClick={onClose} className="flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity bg-white px-6 py-3 shadow-lg hover:bg-gray-100">
-                <X size={16} /> Sluiten
+                <X size={16} /> CHIUDI
               </button>
             </div>
           </div>
@@ -1169,23 +1233,35 @@ export default function App() {
   const [works, setWorks] = useState<Work[]>([]);
   const [galleryNames, setGalleryNames] = useState<Record<string, string>>({});
   const [sectionsData, setSectionsData] = useState<Record<string, any>>({});
+  const [settings, setSettings] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     async function fetchData() {
+      setIsLoading(true);
+      setError(null);
       try {
+        console.log("Fetching data from Supabase...");
+        
         const { data: worksData, error: worksError } = await supabase
           .from('works')
           .select('*')
           .order('display_order', { ascending: true });
         
         if (worksError) {
+          console.error("Works error:", worksError);
           // Fallback to created_at if display_order doesn't exist
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('works')
             .select('*')
             .order('created_at', { ascending: false });
-          if (fallbackError) throw fallbackError;
+          
+          if (fallbackError) {
+            setError(`Errore caricamento lavori: ${fallbackError.message}`);
+            throw fallbackError;
+          }
           if (fallbackData && isMounted) setWorks(fallbackData);
         } else if (worksData && isMounted) {
           setWorks(worksData);
@@ -1193,10 +1269,12 @@ export default function App() {
 
         const { data: settingsData, error: settingsError } = await supabase.from('settings').select('*');
         if (settingsError) {
-          if (settingsError.code === '42P01' || settingsError.message.includes('settings')) {
-            console.warn('settings table not found. Please run the updated SQL schema.');
+          console.error("Settings error:", settingsError);
+          // If the table is missing from schema cache (common Supabase issue), just log it and continue with defaults
+          if (settingsError.code === '42P01' || settingsError.message.includes('settings') || settingsError.message.includes('schema cache')) {
+            console.warn('settings table not found or schema cache stale. Using defaults.');
           } else {
-            console.error('Error fetching settings:', settingsError.message);
+            setError(`Errore impostazioni: ${settingsError.message}`);
           }
         } else if (settingsData && isMounted) {
           const names: Record<string, string> = {};
@@ -1205,8 +1283,10 @@ export default function App() {
             section2: {},
             section3: {}
           };
+          const allSettings: Record<string, any> = {};
           
           settingsData.forEach(setting => {
+            allSettings[setting.key] = setting.value;
             if (setting.key.endsWith('_name')) {
               const galleryKey = setting.key.replace('_name', '').replace(/_/g, ' ');
               names[galleryKey] = setting.value;
@@ -1220,11 +1300,15 @@ export default function App() {
           });
           setGalleryNames(names);
           setSectionsData(sections);
+          setSettings(allSettings);
         }
       } catch (err: any) {
+        console.error("Fetch error:", err);
         if (!err.message?.includes('settings') && !err.message?.includes('works')) {
-          console.error('Error fetching data:', err);
+          setError(`Errore di connessione: ${err.message || "Impossibile connettersi a Supabase"}`);
         }
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     }
     fetchData();
@@ -1252,11 +1336,32 @@ export default function App() {
       className="min-h-screen text-redd-dark selection:bg-redd-accent selection:text-white bg-[#161a1d]"
     >
       <Lightbox isOpen={isLightboxOpen} onClose={() => setIsLightboxOpen(false)} project={selectedProject} />
-      <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} galleryNames={galleryNames} works={works} onOpenLightbox={handleOpenLightbox} />
-      <Navbar onMenuClick={() => setIsMenuOpen(true)} />
+      <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} galleryNames={galleryNames} works={works} onOpenLightbox={handleOpenLightbox} settings={settings} />
+      <Navbar onMenuClick={() => setIsMenuOpen(true)} settings={settings} />
       
       <main className="relative z-10 bg-redd-light shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-b-[2rem] md:rounded-b-[3rem] min-h-screen">
-        {!isSupabaseConfigured ? (
+        {isLoading ? (
+          <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-12 h-12 border-4 border-redd-accent border-t-transparent rounded-full animate-spin mb-6"></div>
+            <h2 className="text-xl font-bold uppercase tracking-widest animate-pulse">Caricamento contenuti...</h2>
+          </div>
+        ) : error ? (
+          <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+              <X size={32} />
+            </div>
+            <h2 className="text-2xl font-bold mb-4 uppercase tracking-widest">Errore di Connessione</h2>
+            <p className="max-w-md text-gray-500 mb-8 bg-red-50 p-4 rounded-lg font-mono text-sm">
+              {error}
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-black text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-gray-800 transition-colors"
+            >
+              Riprova Caricamento
+            </button>
+          </div>
+        ) : !isSupabaseConfigured ? (
           <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
             <Lock size={48} className="mb-6 text-gray-300" />
             <h2 className="text-2xl font-bold mb-4 uppercase tracking-widest">Database non configurato</h2>
@@ -1280,7 +1385,7 @@ export default function App() {
           </div>
         ) : (
           <>
-            <Hero data={sectionsData.section1} />
+            <Hero data={sectionsData.section1} settings={settings} />
             <HorizontalGallery 
               key={`galleria-3-${galleria3.length}`}
               title={galleryNames['galleria 3'] || "Galleria 3"} 
@@ -1289,7 +1394,7 @@ export default function App() {
               onMenuClick={() => setIsMenuOpen(true)} 
               onOpenLightbox={handleOpenLightbox} 
             />
-            <Process data={sectionsData.section2} />
+            <Process data={sectionsData.section2} settings={settings} />
             <HorizontalGallery 
               key={`galleria-2-${galleria2.length}`}
               title={galleryNames['galleria 2'] || "Galleria 2"} 
@@ -1298,7 +1403,7 @@ export default function App() {
               onMenuClick={() => setIsMenuOpen(true)} 
               onOpenLightbox={handleOpenLightbox} 
             />
-            <LetsTalk data={sectionsData.section3} />
+            <LetsTalk data={sectionsData.section3} settings={settings} />
             <HorizontalGallery 
               key={`galleria-1-${galleria1.length}`}
               title={galleryNames['galleria 1'] || "Galleria 1"} 
@@ -1313,10 +1418,10 @@ export default function App() {
       </main>
       <div className="relative z-0">
         <div className="fixed bottom-0 left-0 w-full -z-10 bg-[#161a1d]">
-          <Footer />
+          <Footer settings={settings} />
         </div>
         <div className="invisible pointer-events-none">
-          <Footer />
+          <Footer settings={settings} />
         </div>
       </div>
     </motion.div>

@@ -120,11 +120,17 @@ export default function AdminPanel() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsAuthenticated(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setIsAuthenticated(true);
+        }
+      } catch (err: any) {
+        console.error('Session check error:', err);
+        setError(err.message || 'Errore durante il controllo della sessione');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     checkSession();
   }, []);
@@ -230,9 +236,9 @@ export default function AdminPanel() {
     try {
       const { data, error } = await supabase.from('settings').select('*');
       if (error) {
-        if (error.code === '42P01' || error.message.includes('settings')) {
-          // Table doesn't exist, ignore gracefully
-          console.warn('Settings table not found. Please run the updated SQL schema.');
+        if (error.code === '42P01' || error.message.includes('settings') || error.message.includes('schema cache')) {
+          // Table doesn't exist or schema cache is stale, ignore gracefully
+          console.warn('Settings table not found or schema cache stale. Using defaults.');
           return;
         }
         throw error;
@@ -643,106 +649,116 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
 
   if (loading) return <div>Caricamento sezioni...</div>;
 
-  const renderSectionFields = (sectionId: string, sectionName: string, hasSteps: boolean = false) => (
-    <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
-      <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">{sectionName}</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <ImageField 
-          label="Immagine di Sfondo" 
-          value={settings[`${sectionId}_image_url`] || ''} 
-          onChange={(url) => handleChange(`${sectionId}_image_url`, url)} 
-        />
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Titolo</label>
-          <select 
-            value={settings[`${sectionId}_title_align`] || 'left'} 
-            onChange={(e) => handleChange(`${sectionId}_title_align`, e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
-          >
-            <option value="left">Sinistra</option>
-            <option value="center">Centrato</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Sovratitolo</label>
-          <input 
-            type="text" 
-            value={settings[`${sectionId}_subtitle`] || ''} 
-            onChange={(e) => handleChange(`${sectionId}_subtitle`, e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+  const renderSectionFields = (sectionId: string, sectionName: string, hasSteps: boolean = false, hideContainer: boolean = false) => {
+    const content = (
+      <>
+        {sectionName && <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">{sectionName}</h3>}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <ImageField 
+            label="Immagine di Sfondo" 
+            value={settings[`${sectionId}_image_url`] || ''} 
+            onChange={(url) => handleChange(`${sectionId}_image_url`, url)} 
           />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titolo (max 2 righe)</label>
-          <textarea 
-            value={settings[`${sectionId}_title`] || ''} 
-            onChange={(e) => handleChange(`${sectionId}_title`, e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors min-h-[80px]"
-            rows={2}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Descrizione (max 2 righe)</label>
-          <textarea 
-            value={settings[`${sectionId}_description`] || ''} 
-            onChange={(e) => handleChange(`${sectionId}_description`, e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors min-h-[80px]"
-            rows={2}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Testo Pulsante Link</label>
-          <input 
-            type="text" 
-            value={settings[`${sectionId}_link_text`] || ''} 
-            onChange={(e) => handleChange(`${sectionId}_link_text`, e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">URL Pulsante Link</label>
-          <input 
-            type="text" 
-            value={settings[`${sectionId}_link_url`] || ''} 
-            onChange={(e) => handleChange(`${sectionId}_link_url`, e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
-          />
-        </div>
-      </div>
-
-      {hasSteps && (
-        <div className="mt-12 border-t border-gray-200 pt-8">
-          <h4 className="text-xl font-bold mb-6">Colonne / Step (Sezione 2)</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {[1, 2, 3, 4].map(step => (
-              <div key={step} className="bg-gray-50 p-6 rounded-xl border border-gray-100">
-                <h5 className="font-bold mb-4">Colonna {step}</h5>
-                <div className="mb-4">
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titolo</label>
-                  <input 
-                    type="text" 
-                    value={settings[`${sectionId}_step${step}_title`] || ''} 
-                    onChange={(e) => handleChange(`${sectionId}_step${step}_title`, e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-black transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Descrizione</label>
-                  <textarea 
-                    value={settings[`${sectionId}_step${step}_desc`] || ''} 
-                    onChange={(e) => handleChange(`${sectionId}_step${step}_desc`, e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-black transition-colors min-h-[80px]"
-                    rows={2}
-                  />
-                </div>
-              </div>
-            ))}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Titolo</label>
+            <select 
+              value={settings[`${sectionId}_title_align`] || 'left'} 
+              onChange={(e) => handleChange(`${sectionId}_title_align`, e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+            >
+              <option value="left">Sinistra</option>
+              <option value="center">Centrato</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Sovratitolo</label>
+            <input 
+              type="text" 
+              value={settings[`${sectionId}_subtitle`] || ''} 
+              onChange={(e) => handleChange(`${sectionId}_subtitle`, e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titolo (max 2 righe)</label>
+            <textarea 
+              value={settings[`${sectionId}_title`] || ''} 
+              onChange={(e) => handleChange(`${sectionId}_title`, e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors min-h-[80px]"
+              rows={2}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Descrizione (max 2 righe)</label>
+            <textarea 
+              value={settings[`${sectionId}_description`] || ''} 
+              onChange={(e) => handleChange(`${sectionId}_description`, e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors min-h-[80px]"
+              rows={2}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Testo Pulsante Link</label>
+            <input 
+              type="text" 
+              value={settings[`${sectionId}_link_text`] || ''} 
+              onChange={(e) => handleChange(`${sectionId}_link_text`, e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">URL Pulsante Link</label>
+            <input 
+              type="text" 
+              value={settings[`${sectionId}_link_url`] || ''} 
+              onChange={(e) => handleChange(`${sectionId}_link_url`, e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+            />
           </div>
         </div>
-      )}
-    </div>
-  );
+
+        {hasSteps && (
+          <div className="mt-12 border-t border-gray-200 pt-8">
+            <h4 className="text-xl font-bold mb-6">Filosofia / Colonne (Sezione 2)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {[1, 2, 3, 4].map(step => (
+                <div key={step} className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                  <h5 className="font-bold mb-4 uppercase tracking-widest text-sm">Colonna {step}</h5>
+                  <div className="mb-4">
+                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titolo</label>
+                    <input 
+                      type="text" 
+                      value={settings[`col${step}_title`] || ''} 
+                      onChange={(e) => handleChange(`col${step}_title`, e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-black transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Testo</label>
+                    <textarea 
+                      value={settings[`col${step}_text`] || ''} 
+                      onChange={(e) => handleChange(`col${step}_text`, e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:border-black transition-colors min-h-[80px]"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </>
+    );
+
+    if (hideContainer) return content;
+
+    return (
+      <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
+        {content}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -757,9 +773,304 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
         </button>
       </div>
 
-      {renderSectionFields('section1', 'Sezione 1 (Hero)')}
-      {renderSectionFields('section2', 'Sezione 2 (Processo)', true)}
-      {renderSectionFields('section3', 'Sezione 3 (Contatti)')}
+      {/* Header Customization */}
+      <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
+        <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">Intestazione (Header)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titolo Header</label>
+              <input 
+                type="text" 
+                value={settings.header_title || ''} 
+                onChange={(e) => handleChange('header_title', e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                placeholder="LORENZO PACI"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Titolo</label>
+                <select 
+                  value={settings.header_title_size || 'text-xl'} 
+                  onChange={(e) => handleChange('header_title_size', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+                >
+                  <option value="text-sm">Small</option>
+                  <option value="text-base">Normal</option>
+                  <option value="text-lg">Large</option>
+                  <option value="text-xl">Extra Large</option>
+                  <option value="text-2xl">2XL</option>
+                  <option value="text-3xl">3XL</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Titolo</label>
+                <select 
+                  value={settings.header_title_align || 'text-left'} 
+                  onChange={(e) => handleChange('header_title_align', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+                >
+                  <option value="text-left">Sinistra</option>
+                  <option value="text-center">Centro</option>
+                  <option value="text-right">Destra</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Sottotitolo Header</label>
+              <input 
+                type="text" 
+                value={settings.header_subtitle || ''} 
+                onChange={(e) => handleChange('header_subtitle', e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                placeholder="Creative Visionary"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Sottotitolo</label>
+                <select 
+                  value={settings.header_subtitle_size || 'text-[10px]'} 
+                  onChange={(e) => handleChange('header_subtitle_size', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+                >
+                  <option value="text-[8px]">Tiny</option>
+                  <option value="text-[10px]">Small</option>
+                  <option value="text-xs">Normal</option>
+                  <option value="text-sm">Large</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Sottotitolo</label>
+                <select 
+                  value={settings.header_subtitle_align || 'text-left'} 
+                  onChange={(e) => handleChange('header_subtitle_align', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+                >
+                  <option value="text-left">Sinistra</option>
+                  <option value="text-center">Centro</option>
+                  <option value="text-right">Destra</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <ImageField 
+              label="Logo Header (.png consigliato)" 
+              value={settings.header_logo || ''} 
+              onChange={(url) => handleChange('header_logo', url)} 
+            />
+            <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest">Se caricato, il logo sostituirà il testo nell'header.</p>
+          </div>
+        </div>
+      </div>
+
+      {renderSectionFields('section1', 'Sezione 1 (Hero Background)')}
+      {renderSectionFields('section2', 'Sezione 2 (Processo / Filosofia)', true)}
+      
+      {/* Section 3 with Font Size Controls */}
+      <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
+        <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">Sezione 3 (Contatti)</h3>
+        {renderSectionFields('section3', '', false, true)}
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t border-gray-100">
+          <div className="md:col-span-3 mb-4">
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Link del Titolo (es. YouTube)</label>
+            <input 
+              type="text" 
+              value={settings.section3_title_link || ''} 
+              onChange={(e) => handleChange('section3_title_link', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+              placeholder="https://youtube.com/..."
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Titolo</label>
+            <select 
+              value={settings.section3_title_size || 'text-6xl'} 
+              onChange={(e) => handleChange('section3_title_size', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+            >
+              <option value="text-4xl">4XL</option>
+              <option value="text-5xl">5XL</option>
+              <option value="text-6xl">6XL</option>
+              <option value="text-7xl">7XL</option>
+              <option value="text-8xl">8XL</option>
+              <option value="text-[10rem]">10rem (Gigante)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Sottotitolo</label>
+            <select 
+              value={settings.section3_subtitle_size || 'text-sm'} 
+              onChange={(e) => handleChange('section3_subtitle_size', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+            >
+              <option value="text-xs">Extra Small</option>
+              <option value="text-sm">Small</option>
+              <option value="text-base">Normal</option>
+              <option value="text-lg">Large</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Descrizione</label>
+            <select 
+              value={settings.section3_desc_size || 'text-lg'} 
+              onChange={(e) => handleChange('section3_desc_size', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+            >
+              <option value="text-sm">Small</option>
+              <option value="text-base">Normal</option>
+              <option value="text-lg">Large</option>
+              <option value="text-xl">Extra Large</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Customization */}
+      <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
+        <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">Piè di pagina (Footer)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titolo Footer (Centrale)</label>
+              <input 
+                type="text" 
+                value={settings.footer_title || ''} 
+                onChange={(e) => handleChange('footer_title', e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Titolo</label>
+                <select 
+                  value={settings.footer_title_size || 'text-5xl'} 
+                  onChange={(e) => handleChange('footer_title_size', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+                >
+                  <option value="text-2xl">2XL</option>
+                  <option value="text-3xl">3XL</option>
+                  <option value="text-4xl">4XL</option>
+                  <option value="text-5xl">5XL</option>
+                  <option value="text-6xl">6XL</option>
+                  <option value="text-7xl">7XL</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Titolo</label>
+                <select 
+                  value={settings.footer_title_align || 'text-center'} 
+                  onChange={(e) => handleChange('footer_title_align', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+                >
+                  <option value="text-left">Sinistra</option>
+                  <option value="text-center">Centro</option>
+                  <option value="text-right">Destra</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Sottotitolo Footer (Centrale)</label>
+              <input 
+                type="text" 
+                value={settings.footer_subtitle || ''} 
+                onChange={(e) => handleChange('footer_subtitle', e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Sottotitolo</label>
+                <select 
+                  value={settings.footer_subtitle_size || 'text-xs'} 
+                  onChange={(e) => handleChange('footer_subtitle_size', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+                >
+                  <option value="text-[8px]">Tiny</option>
+                  <option value="text-[10px]">Small</option>
+                  <option value="text-xs">Normal</option>
+                  <option value="text-sm">Large</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Sottotitolo</label>
+                <select 
+                  value={settings.footer_subtitle_align || 'text-center'} 
+                  onChange={(e) => handleChange('footer_subtitle_align', e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+                >
+                  <option value="text-left">Sinistra</option>
+                  <option value="text-center">Centro</option>
+                  <option value="text-right">Destra</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-2 pt-6 border-t border-gray-100">
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Testo Copyright (Anno e Dati)</label>
+            <input 
+              type="text" 
+              value={settings.footer_copyright || ''} 
+              onChange={(e) => handleChange('footer_copyright', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+              placeholder="© 2024 LORENZO PACI - ALL RIGHTS RESERVED"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Menu & Contact Info */}
+      <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
+        <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">Menu & Info Contatti</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="md:col-span-2">
+            <ImageField 
+              label="Immagine Menu (Destra)" 
+              value={settings.menu_image || ''} 
+              onChange={(url) => handleChange('menu_image', url)} 
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Indirizzo</label>
+            <textarea 
+              value={settings.contact_address || ''} 
+              onChange={(e) => handleChange('contact_address', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+              rows={3}
+              placeholder="VIA DEL CORSO 123&#10;ROMA"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Email di Contatto</label>
+            <input 
+              type="email" 
+              value={settings.contact_email || ''} 
+              onChange={(e) => handleChange('contact_email', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Telefono di Contatto</label>
+            <input 
+              type="text" 
+              value={settings.contact_phone || ''} 
+              onChange={(e) => handleChange('contact_phone', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
