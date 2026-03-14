@@ -1,9 +1,26 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from './lib/supabase';
 
 export default function About() {
+  const [settings, setSettings] = useState<any>({});
+
+  useEffect(() => {
+    async function fetchSettings() {
+      const { data } = await supabase.from('settings').select('*');
+      if (data) {
+        const settingsObj = data.reduce((acc: any, curr: any) => ({
+          ...acc,
+          [curr.key]: curr.value
+        }), {});
+        setSettings(settingsObj);
+      }
+    }
+    fetchSettings();
+  }, []);
+
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
@@ -16,14 +33,27 @@ export default function About() {
       <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 pt-6 pb-12 bg-gradient-to-b from-redd-light/100 via-redd-light/80 to-transparent">
         <Link 
           to="/" 
-          onClick={(e) => {
-            e.preventDefault();
-            window.location.href = '/';
-          }}
           className="flex flex-col hover:opacity-80 transition-opacity"
         >
-          <div className="text-xl font-bold tracking-tight uppercase">LORENZO PACI</div>
-          <div className="text-[10px] tracking-[0.2em] uppercase opacity-70">CREATIVE VISIONARY</div>
+          {settings.header_logo ? (
+            <div className={`flex ${settings.header_title_align === 'text-center' ? 'justify-center' : settings.header_title_align === 'text-right' ? 'justify-end' : 'justify-start'}`}>
+              <img 
+                src={settings.header_logo} 
+                alt="Logo" 
+                style={{ height: `${settings.header_logo_height || 40}px` }}
+                className="w-auto object-contain" 
+              />
+            </div>
+          ) : (
+            <div className={`flex flex-col ${settings.header_title_align === 'text-center' ? 'items-center' : settings.header_title_align === 'text-right' ? 'items-end' : 'items-start'}`}>
+              <div className={`${settings.header_title_size || 'text-xl'} font-bold tracking-tight uppercase`}>
+                {settings.header_title || "SPIEGATO IN BREVE"}
+              </div>
+              <div className={`${settings.header_subtitle_size || 'text-[10px]'} tracking-[0.2em] uppercase opacity-70`}>
+                {settings.header_subtitle || "CINEMA & POP CULTURE"}
+              </div>
+            </div>
+          )}
         </Link>
         <Link to="/" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
           <ArrowLeft size={18} /> Back to Home

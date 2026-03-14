@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Plus, Edit2, Trash2, Lock, AlertCircle, Upload, GripVertical } from 'lucide-react';
+import { LogOut, Plus, Edit2, Trash2, Lock, AlertCircle, Upload, GripVertical, ArrowUpRight, Play } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase, type Work } from './lib/supabase';
 import {
@@ -24,12 +24,14 @@ function ImageField({
   label, 
   value, 
   onChange, 
-  placeholder = "https://..." 
+  placeholder = "https://...",
+  type = "image"
 }: { 
   label: string, 
   value: string, 
   onChange: (url: string) => void,
-  placeholder?: string
+  placeholder?: string,
+  type?: "image" | "video" | "youtube"
 }) {
   const [uploading, setUploading] = useState(false);
 
@@ -75,13 +77,17 @@ function ImageField({
             placeholder={placeholder}
           />
           {value && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg overflow-hidden border border-gray-100">
-              <img src={value} alt="Preview" className="w-full h-full object-cover" />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center">
+              {type === 'image' ? (
+                <img src={value} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <Play size={12} className="text-gray-400" />
+              )}
             </div>
           )}
         </div>
         <label className={`shrink-0 w-12 h-12 flex items-center justify-center rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-          <input type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+          <input type="file" className="hidden" accept={type === 'image' ? "image/*" : "video/*"} onChange={handleUpload} />
           {uploading ? (
             <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
           ) : (
@@ -389,29 +395,6 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-white text-redd-dark font-sans pb-24">
-      {/* Main Site Header (Admin Mode) */}
-      <nav className="w-full flex justify-between items-center px-6 md:px-12 py-6 border-b border-gray-100">
-        <Link 
-          to="/" 
-          onClick={(e) => {
-            e.preventDefault();
-            window.location.href = '/';
-          }}
-          className="flex flex-col hover:opacity-80 transition-opacity"
-        >
-          <div className="text-xl font-bold tracking-tight uppercase">LORENZO PACI</div>
-          <div className="text-[10px] tracking-[0.2em] uppercase text-gray-400">CREATIVE VISIONARY</div>
-        </Link>
-        <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-gray-400">
-          <Link to="/" className="hover:text-black transition-colors">ALL WORKS</Link>
-          <Link to="/" className="hover:text-black transition-colors">GRAPHIC</Link>
-          <Link to="/" className="hover:text-black transition-colors">PHOTO</Link>
-          <Link to="/" className="hover:text-black transition-colors">PROJECTS</Link>
-          <Link to="/about" className="hover:text-black transition-colors">ABOUT</Link>
-          <Link to="/contact" className="hover:text-black transition-colors">CONTACT</Link>
-        </div>
-      </nav>
-
       {/* Admin Dashboard Header */}
       <div className="max-w-7xl mx-auto px-6 md:px-12 pt-16 pb-8 flex justify-between items-end border-b border-gray-200">
         <div>
@@ -722,6 +705,46 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
               className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
             />
           </div>
+
+          {/* Font Size Controls */}
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 mt-4 pt-4 border-t border-gray-100">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Sovratitolo</label>
+              <select 
+                value={settings[`${sectionId}_subtitle_size`] || 'text-sm'} 
+                onChange={(e) => handleChange(`${sectionId}_subtitle_size`, e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+              >
+                <option value="text-xs">Small (S)</option>
+                <option value="text-sm">Medium (M)</option>
+                <option value="text-base">Large (L)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Titolo</label>
+              <select 
+                value={settings[`${sectionId}_title_size`] || (sectionId === 'section1' ? 'text-5xl md:text-7xl lg:text-8xl' : 'text-4xl md:text-6xl lg:text-8xl')} 
+                onChange={(e) => handleChange(`${sectionId}_title_size`, e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+              >
+                <option value="text-4xl md:text-5xl lg:text-6xl">Small (S)</option>
+                <option value="text-5xl md:text-7xl lg:text-8xl">Medium (M)</option>
+                <option value="text-6xl md:text-8xl lg:text-[10rem]">Large (L)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Descrizione</label>
+              <select 
+                value={settings[`${sectionId}_desc_size`] || 'text-lg'} 
+                onChange={(e) => handleChange(`${sectionId}_desc_size`, e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+              >
+                <option value="text-base">Small (S)</option>
+                <option value="text-lg">Medium (M)</option>
+                <option value="text-xl">Large (L)</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {hasSteps && (
@@ -865,38 +888,31 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <ImageField 
-              label="Logo Header (.png consigliato)" 
-              value={settings.header_logo || ''} 
-              onChange={(url) => handleChange('header_logo', url)} 
-            />
-            <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest">Se caricato, il logo sostituirà il testo nell'header.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Hero Overrides */}
-      <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
-        <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">Hero Overrides</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titolo Hero (Sostituisce default)</label>
-            <input 
-              type="text" 
-              value={settings.hero_title || ''} 
-              onChange={(e) => handleChange('hero_title', e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Sottotitolo Hero (Sostituisce default)</label>
-            <input 
-              type="text" 
-              value={settings.hero_subtitle || ''} 
-              onChange={(e) => handleChange('hero_subtitle', e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
-            />
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+            <div>
+              <ImageField 
+                label="Logo Header (.png consigliato)" 
+                value={settings.header_logo || ''} 
+                onChange={(url) => handleChange('header_logo', url)} 
+              />
+              <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest">Se caricato, il logo sostituirà il testo nell'header.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Altezza Logo (px)</label>
+              <select 
+                value={settings.header_logo_height || '40'} 
+                onChange={(e) => handleChange('header_logo_height', e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+              >
+                <option value="20">20px (Tiny)</option>
+                <option value="30">30px (Small)</option>
+                <option value="40">40px (Normal)</option>
+                <option value="50">50px (Large)</option>
+                <option value="60">60px (Extra Large)</option>
+                <option value="80">80px (2XL)</option>
+                <option value="100">100px (3XL)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -904,54 +920,9 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
       {renderSectionFields('section1', 'Sezione 1 (Hero Background)')}
       {renderSectionFields('section2', 'Sezione 2 (Processo / Filosofia)', true)}
       
-      {/* Section 3 with Font Size Controls */}
+      {/* Section 3 (Contatti) */}
       <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
-        <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">Sezione 3 (Contatti)</h3>
-        {renderSectionFields('section3', '', false, true)}
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t border-gray-100">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Titolo</label>
-            <select 
-              value={settings.section3_title_size || 'text-6xl'} 
-              onChange={(e) => handleChange('section3_title_size', e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
-            >
-              <option value="text-4xl">4XL</option>
-              <option value="text-5xl">5XL</option>
-              <option value="text-6xl">6XL</option>
-              <option value="text-7xl">7XL</option>
-              <option value="text-8xl">8XL</option>
-              <option value="text-[10rem]">10rem (Gigante)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Sottotitolo</label>
-            <select 
-              value={settings.section3_subtitle_size || 'text-sm'} 
-              onChange={(e) => handleChange('section3_subtitle_size', e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
-            >
-              <option value="text-xs">Extra Small</option>
-              <option value="text-sm">Small</option>
-              <option value="text-base">Normal</option>
-              <option value="text-lg">Large</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Descrizione</label>
-            <select 
-              value={settings.section3_desc_size || 'text-lg'} 
-              onChange={(e) => handleChange('section3_desc_size', e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
-            >
-              <option value="text-sm">Small</option>
-              <option value="text-base">Normal</option>
-              <option value="text-lg">Large</option>
-              <option value="text-xl">Extra Large</option>
-            </select>
-          </div>
-        </div>
+        {renderSectionFields('section3', 'Sezione 3 (Contatti)', false, true)}
       </div>
 
       {/* Footer Customization */}
@@ -1051,6 +1022,69 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
         </div>
       </div>
 
+      {/* SEO & Metadata */}
+      <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+            <ArrowUpRight size={20} />
+          </div>
+          <h3 className="text-3xl font-serif uppercase tracking-tighter">SEO & Metadati</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Meta Title (Titolo per i motori di ricerca)</label>
+              <input 
+                type="text" 
+                value={settings.seo_title || ''} 
+                onChange={(e) => handleChange('seo_title', e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                placeholder="Nome Cognome | Portfolio Creativo"
+              />
+              <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest">Consigliato: 50-60 caratteri.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Meta Description (Descrizione per i motori di ricerca)</label>
+              <textarea 
+                value={settings.seo_description || ''} 
+                onChange={(e) => handleChange('seo_description', e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                rows={4}
+                placeholder="Descrizione breve del tuo lavoro e della tua visione..."
+              />
+              <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-widest">Consigliato: 150-160 caratteri.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Keywords (Parole chiave separate da virgola)</label>
+              <input 
+                type="text" 
+                value={settings.seo_keywords || ''} 
+                onChange={(e) => handleChange('seo_keywords', e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+                placeholder="design, photography, creative, art"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-6">
+            <ImageField 
+              label="Open Graph Image (Immagine per i social)" 
+              value={settings.seo_og_image || ''} 
+              onChange={(url) => handleChange('seo_og_image', url)} 
+            />
+            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Questa immagine apparirà quando condividi il link su WhatsApp, Facebook, etc. (1200x630px consigliato)</p>
+            
+            <ImageField 
+              label="Favicon (Icona del sito)" 
+              value={settings.seo_favicon || ''} 
+              onChange={(url) => handleChange('seo_favicon', url)} 
+            />
+            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">L'icona che appare nella scheda del browser (.png o .ico)</p>
+          </div>
+        </div>
+      </div>
+
       {/* Menu & Contact Info */}
       <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
         <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">Menu & Info Contatti</h3>
@@ -1128,8 +1162,13 @@ function SortableWorkRow({ work, onEdit, onDelete }: { key?: React.Key, work: Wo
           <GripVertical size={18} />
         </button>
       </div>
-      <div className="col-span-2">
-        {work.cover_image_url ? (
+      <div className="col-span-2 relative">
+        {work.cover_media_type === 'youtube' || work.cover_media_type === 'video' ? (
+          <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center relative overflow-hidden">
+            {work.cover_image_url && <img src={work.cover_image_url} alt={work.title} className="absolute inset-0 w-full h-full object-cover opacity-50" />}
+            <Play size={16} className="text-white relative z-10" fill="currentColor" />
+          </div>
+        ) : work.cover_image_url ? (
           <img src={work.cover_image_url} alt={work.title} className="w-12 h-12 rounded-lg object-cover" />
         ) : (
           <div className="w-12 h-12 rounded-lg bg-gray-100" />
@@ -1194,12 +1233,24 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
         ) : (
           <div className="w-16 h-16 bg-gray-100 rounded-lg" />
         )}
-        <input 
-          type="text" 
-          value={img.image_url} 
-          readOnly 
-          className="flex-1 bg-transparent border-none focus:outline-none text-sm text-gray-500 truncate"
-        />
+        <div className="flex-1 flex flex-col gap-1 overflow-hidden">
+          <input 
+            type="text" 
+            value={img.image_url} 
+            readOnly 
+            className="w-full bg-transparent border-none focus:outline-none text-sm text-gray-500 truncate"
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
+              {img.media_type || 'image'}
+            </span>
+            {img.video_url && (
+              <span className="text-[10px] text-gray-400 truncate max-w-[200px]">
+                {img.video_url}
+              </span>
+            )}
+          </div>
+        </div>
         <button 
           onClick={() => onRemove(index)}
           className="w-8 h-8 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-100 hover:text-red-600 hover:border-red-200 transition-colors"
@@ -1207,7 +1258,40 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
           <Trash2 size={14} />
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-2 mt-2">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Tipo Media</label>
+          <select 
+            value={img.media_type || 'image'} 
+            onChange={(e) => onUpdate(index, { media_type: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors bg-white"
+          >
+            <option value="image">Immagine</option>
+            <option value="video">Video File</option>
+            <option value="youtube">YouTube Link</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Video URL / YouTube Link</label>
+          <input 
+            type="text" 
+            placeholder="https://..." 
+            value={img.video_url || ''} 
+            onChange={(e) => onUpdate(index, { video_url: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+        <input 
+          type="text" 
+          placeholder="SEO Alt Text (optional)" 
+          value={img.seo_alt_text || ''} 
+          onChange={(e) => onUpdate(index, { seo_alt_text: e.target.value })}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
+        />
         <input 
           type="text" 
           placeholder="Title (optional)" 
@@ -1215,6 +1299,8 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
           onChange={(e) => onUpdate(index, { title: e.target.value })}
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
         />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
         <input 
           type="text" 
           placeholder="Link URL (optional)" 
@@ -1222,14 +1308,14 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
           onChange={(e) => onUpdate(index, { link: e.target.value })}
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
         />
+        <textarea 
+          placeholder="Description (optional)" 
+          value={img.description || ''} 
+          onChange={(e) => onUpdate(index, { description: e.target.value })}
+          rows={1}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors resize-none"
+        />
       </div>
-      <textarea 
-        placeholder="Description (optional)" 
-        value={img.description || ''} 
-        onChange={(e) => onUpdate(index, { description: e.target.value })}
-        rows={2}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors resize-none"
-      />
     </div>
   );
 }
@@ -1266,8 +1352,10 @@ function WorkRow({ title, category, image, onEdit, onDelete }: { key?: React.Key
 function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClose: () => void, setAdminMessage: (msg: { text: string, type: 'success' | 'error' } | null) => void }) {
   const [formData, setFormData] = useState<Partial<Work>>(work || {});
   const [saving, setSaving] = useState(false);
-  const [galleryImages, setGalleryImages] = useState<{ id?: string, image_url: string, title?: string, description?: string, link?: string, display_order: number }[]>([]);
+  const [galleryImages, setGalleryImages] = useState<{ id?: string, image_url: string, media_type?: 'image' | 'video' | 'youtube', video_url?: string, title?: string, description?: string, link?: string, display_order: number }[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [newMediaType, setNewMediaType] = useState<'image' | 'video' | 'youtube'>('image');
+  const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newImageTitle, setNewImageTitle] = useState('');
   const [newImageDescription, setNewImageDescription] = useState('');
   const [newImageLink, setNewImageLink] = useState('');
@@ -1300,11 +1388,15 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
   };
 
   const handleAddImage = () => {
-    if (!newImageUrl.trim()) return;
+    const isVideo = newMediaType === 'video' || newMediaType === 'youtube';
+    if (!newImageUrl.trim() && (!isVideo || !newVideoUrl.trim())) return;
+    
     setGalleryImages(prev => [
       ...prev, 
       { 
         image_url: newImageUrl, 
+        media_type: newMediaType,
+        video_url: newVideoUrl,
         title: newImageTitle,
         description: newImageDescription,
         link: newImageLink,
@@ -1312,6 +1404,8 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
       }
     ]);
     setNewImageUrl('');
+    setNewMediaType('image');
+    setNewVideoUrl('');
     setNewImageTitle('');
     setNewImageDescription('');
     setNewImageLink('');
@@ -1369,9 +1463,12 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
           const imagesToInsert = galleryImages.map((img, index) => ({
             work_id: workId,
             image_url: img.image_url,
+            media_type: img.media_type || 'image',
+            video_url: img.video_url,
             title: img.title,
             description: img.description,
             link: img.link,
+            seo_alt_text: img.seo_alt_text,
             display_order: index
           }));
           const { error: imgError } = await supabase.from('work_images').insert(imagesToInsert);
@@ -1389,29 +1486,6 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
 
   return (
     <div className="min-h-screen bg-white text-redd-dark font-sans pb-24">
-      {/* Main Site Header (Admin Mode) */}
-      <nav className="w-full flex justify-between items-center px-6 md:px-12 py-6 border-b border-gray-100">
-        <Link 
-          to="/" 
-          onClick={(e) => {
-            e.preventDefault();
-            window.location.href = '/';
-          }}
-          className="flex flex-col hover:opacity-80 transition-opacity"
-        >
-          <div className="text-xl font-bold tracking-tight uppercase">LORENZO PACI</div>
-          <div className="text-[10px] tracking-[0.2em] uppercase text-gray-400">CREATIVE VISIONARY</div>
-        </Link>
-        <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-gray-400">
-          <Link to="/" className="hover:text-black transition-colors">ALL WORKS</Link>
-          <Link to="/" className="hover:text-black transition-colors">GRAPHIC</Link>
-          <Link to="/" className="hover:text-black transition-colors">PHOTO</Link>
-          <Link to="/" className="hover:text-black transition-colors">PROJECTS</Link>
-          <Link to="/about" className="hover:text-black transition-colors">ABOUT</Link>
-          <Link to="/contact" className="hover:text-black transition-colors">CONTACT</Link>
-        </div>
-      </nav>
-
       {/* Admin Dashboard Header */}
       <div className="max-w-7xl mx-auto px-6 md:px-12 pt-16 pb-8 flex justify-between items-end border-b border-gray-200">
         <div>
@@ -1436,6 +1510,18 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">SEO Alt Text (Main Image)</label>
+                <input 
+                  type="text" 
+                  name="seo_alt_text" 
+                  value={formData.seo_alt_text || ''} 
+                  onChange={handleChange} 
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors" 
+                  placeholder="Descrizione per i motori di ricerca..."
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Category</label>
                 <select name="category" value={formData.category || 'PROJECTS'} onChange={handleChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors appearance-none bg-white">
                   <option value="PROJECTS">Projects</option>
@@ -1456,16 +1542,38 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
                 </select>
               </div>
 
-              <label className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors">
-                <input type="checkbox" name="is_featured" checked={formData.is_featured || false} onChange={handleChange} className="w-4 h-4 accent-black" />
-                <span className="text-sm font-bold uppercase tracking-widest">Metti in evidenza nella home page</span>
-              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ImageField 
+                  label="Cover Image / Preview" 
+                  value={formData.cover_image_url || ''} 
+                  onChange={(url) => setFormData(prev => ({ ...prev, cover_image_url: url }))} 
+                />
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Cover Media Type</label>
+                  <select 
+                    name="cover_media_type" 
+                    value={formData.cover_media_type || 'image'} 
+                    onChange={handleChange} 
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors appearance-none bg-white"
+                  >
+                    <option value="image">Immagine</option>
+                    <option value="video">Video File</option>
+                    <option value="youtube">YouTube Link</option>
+                  </select>
+                </div>
+              </div>
 
-              <ImageField 
-                label="Cover Image" 
-                value={formData.cover_image_url || ''} 
-                onChange={(url) => setFormData(prev => ({ ...prev, cover_image_url: url }))} 
-              />
+              {(formData.cover_media_type === 'video' || formData.cover_media_type === 'youtube') && (
+                <div>
+                  <ImageField 
+                    label={formData.cover_media_type === 'video' ? 'Cover Video URL (mp4, webm)' : 'Cover YouTube Link'}
+                    value={formData.cover_video_url || ''} 
+                    onChange={(url) => setFormData(prev => ({ ...prev, cover_video_url: url }))} 
+                    placeholder="https://..."
+                    type={formData.cover_media_type as any}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Cover Image Caption (Lightbox Only)</label>
@@ -1517,12 +1625,39 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
                   </DndContext>
 
                   <div className="flex flex-col gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <ImageField 
-                      label="Add New Image" 
-                      value={newImageUrl} 
-                      onChange={setNewImageUrl} 
-                      placeholder="Image URL (required)"
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <ImageField 
+                        label="Immagine Anteprima" 
+                        value={newImageUrl} 
+                        onChange={setNewImageUrl} 
+                        placeholder="Image URL (required)"
+                      />
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Tipo Media</label>
+                        <select 
+                          value={newMediaType} 
+                          onChange={(e) => setNewMediaType(e.target.value as any)}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors bg-white"
+                        >
+                          <option value="image">Immagine</option>
+                          <option value="video">Video File</option>
+                          <option value="youtube">YouTube Link</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {(newMediaType === 'video' || newMediaType === 'youtube') && (
+                      <div>
+                        <ImageField 
+                          label={newMediaType === 'video' ? 'Video URL (mp4, webm)' : 'YouTube Link'}
+                          value={newVideoUrl} 
+                          onChange={setNewVideoUrl} 
+                          placeholder="https://..."
+                          type={newMediaType}
+                        />
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-2">
                       <input 
                         type="text" 
@@ -1548,10 +1683,10 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
                     />
                     <button 
                       onClick={handleAddImage}
-                      disabled={!newImageUrl.trim()}
+                      disabled={!newImageUrl.trim() && (newMediaType === 'image' || !newVideoUrl.trim())}
                       className="mt-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors font-bold text-xs uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed w-full"
                     >
-                      Add Image
+                      Add to Gallery
                     </button>
                   </div>
                 </div>
@@ -1568,18 +1703,6 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Description (Bottom - Optional)</label>
                 <textarea name="description_bottom" value={formData.description_bottom || ''} onChange={handleChange} rows={5} placeholder="Secondary description under gallery..." className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors resize-none"></textarea>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">External Links</label>
-                  <button className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800">
-                    <Plus size={14} />
-                  </button>
-                </div>
-                <div className="border border-dashed border-gray-300 rounded-xl p-8 flex justify-center items-center text-gray-400 text-sm hover:bg-gray-50 transition-colors cursor-pointer">
-                  + Add first link (Coming Soon)
-                </div>
               </div>
             </div>
           </div>

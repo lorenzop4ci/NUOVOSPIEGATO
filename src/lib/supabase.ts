@@ -19,12 +19,15 @@ export type Work = {
   category: string;
   is_featured: boolean;
   cover_image_url: string;
+  cover_media_type?: 'image' | 'video' | 'youtube';
+  cover_video_url?: string;
   cover_image_caption: string;
   link_label: string;
   link_url: string;
   description_top: string;
   description_bottom: string;
   group_name: string; // e.g., 'galleria 3', 'sezione 1'
+  seo_alt_text?: string;
   display_order: number;
   created_at: string;
 };
@@ -33,9 +36,12 @@ export type WorkImage = {
   id: string;
   work_id: string;
   image_url: string;
+  media_type?: 'image' | 'video' | 'youtube';
+  video_url?: string;
   title?: string;
   description?: string;
   link?: string;
+  seo_alt_text?: string;
   display_order: number;
   created_at: string;
 };

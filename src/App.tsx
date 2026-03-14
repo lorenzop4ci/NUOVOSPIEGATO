@@ -1,8 +1,15 @@
 import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
-import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail, Lock } from "lucide-react";
+import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail, Lock, Play } from "lucide-react";
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import { supabase, Work } from './lib/supabase';
+
+const getYouTubeEmbedUrl = (url: string) => {
+  if (!url) return '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
+};
 
 const ParallaxImage = React.memo(({ src, alt, className }: { src: string, alt?: string, className?: string }) => {
   const ref = useRef(null);
@@ -59,22 +66,27 @@ const Navbar = ({ onMenuClick, settings }: { onMenuClick: () => void, settings: 
       >
         {settings.header_logo ? (
           <div className={`w-full flex ${settings.header_title_align === 'text-center' ? 'justify-center' : settings.header_title_align === 'text-right' ? 'justify-end' : 'justify-start'}`}>
-            <img src={settings.header_logo} alt="Logo" className={`h-10 w-auto object-contain ${!scrolled ? 'brightness-0 invert' : ''}`} />
+            <img 
+              src={settings.header_logo} 
+              alt="Logo" 
+              style={{ height: `${settings.header_logo_height || 40}px` }}
+              className={`w-auto object-contain ${!scrolled ? 'brightness-0 invert' : ''}`} 
+            />
           </div>
         ) : (
-          <div className="w-full">
-            <div className={`${settings.header_title_size || 'text-xl'} font-bold tracking-tight uppercase ${settings.header_title_align || 'text-left'}`}>
-              {settings.header_title || "LORENZO PACI"}
+          <div className={`w-fit flex flex-col items-center`}>
+            <div className={`${settings.header_title_size || 'text-xl'} font-bold tracking-tight uppercase text-center`}>
+              {settings.header_title || "SPIEGATO IN BREVE"}
             </div>
-            <div className={`${settings.header_subtitle_size || 'text-[10px]'} tracking-[0.2em] uppercase opacity-70 ${settings.header_subtitle_align || 'text-left'}`}>
-              {settings.header_subtitle || "CREATIVE VISIONARY"}
+            <div className={`${settings.header_subtitle_size || 'text-[10px]'} tracking-[0.2em] uppercase opacity-70 text-center`}>
+              {settings.header_subtitle || "CINEMA & POP CULTURE"}
             </div>
           </div>
         )}
       </Link>
-      <div className="flex items-center gap-6 absolute right-6 md:right-12">
-        <button onClick={onMenuClick} className="flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity">
-          Menu <Menu size={18} />
+      <div className="flex items-center absolute right-6 md:right-12">
+        <button onClick={onMenuClick} className="flex items-center hover:opacity-70 transition-opacity">
+          <Menu size={32} strokeWidth={2.5} />
         </button>
       </div>
     </nav>
@@ -89,6 +101,10 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
   });
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.6]);
   const textY = useTransform(scrollYProgress, [0, 1], [0, -250]);
+
+  const titleSize = settings?.section1_title_size || 'text-5xl md:text-7xl lg:text-8xl';
+  const subtitleSize = settings?.section1_subtitle_size || 'text-sm md:text-base';
+  const descSize = settings?.section1_desc_size || 'text-lg md:text-xl';
 
   return (
     <section ref={ref} className="relative z-0 h-[100vh] w-full bg-redd-dark">
@@ -107,21 +123,21 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
         </div>
       </div>
       <motion.div style={{ y: textY }} className={`absolute top-0 left-0 w-full h-screen flex flex-col justify-end p-6 md:p-16 lg:p-24 pb-24 md:pb-32 pointer-events-none ${data?.title_align === 'center' ? 'items-center text-center' : 'items-start text-left'}`}>
-        {(settings.hero_subtitle || data?.subtitle) && (
-          <div className="text-sm md:text-base tracking-[0.3em] uppercase mb-6 md:mb-8 font-bold opacity-80 text-white pointer-events-auto">
-            {settings.hero_subtitle || data.subtitle}
+        {data?.subtitle && (
+          <div className={`${subtitleSize} tracking-[0.3em] uppercase mb-6 md:mb-8 font-bold opacity-80 text-white pointer-events-auto`}>
+            {data.subtitle}
           </div>
         )}
         <motion.h1 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.2 }}
-          className="text-white font-serif text-5xl md:text-7xl lg:text-8xl leading-[1.1] max-w-5xl pointer-events-auto"
+          className={`text-white font-serif ${titleSize} leading-[1.1] max-w-5xl pointer-events-auto`}
         >
-          {settings.hero_title || data?.title || ""}
+          {data?.title || ""}
         </motion.h1>
         {data?.description && (
-          <p className="mt-6 text-lg md:text-xl text-gray-300 max-w-2xl pointer-events-auto">
+          <p className={`mt-6 ${descSize} text-gray-300 max-w-2xl pointer-events-auto`}>
             {data.description}
           </p>
         )}
@@ -186,6 +202,10 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
     { title: settings?.col4_title || "", desc: settings?.col4_text || "" , link: "/about" }
   ];
 
+  const titleSize = settings?.section2_title_size || 'text-4xl md:text-6xl lg:text-8xl';
+  const subtitleSize = settings?.section2_subtitle_size || 'text-sm md:text-base';
+  const descSize = settings?.section2_desc_size || 'text-lg md:text-xl';
+
   return (
     <section ref={ref} className={`${sticky ? 'sticky top-0' : 'relative'} z-10 h-[80vh] md:h-screen w-full bg-transparent`} style={{ borderTopLeftRadius: '3rem', borderTopRightRadius: '3rem', overflow: 'hidden', zIndex: index, pointerEvents }}>
       <motion.div style={{ 
@@ -227,15 +247,15 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
           className={`absolute inset-0 p-6 md:p-16 lg:p-24 pointer-events-none flex flex-col justify-center md:pt-32 z-10 ${data?.title_align === 'center' ? 'items-center text-center' : 'items-start text-left'}`}
         >
           {data?.subtitle && (
-            <div className="text-sm md:text-base tracking-[0.3em] uppercase mb-6 md:mb-8 font-bold opacity-80 text-white pointer-events-auto">
+            <div className={`${subtitleSize} tracking-[0.3em] uppercase mb-6 md:mb-8 font-bold opacity-80 text-white pointer-events-auto`}>
               {data.subtitle}
             </div>
           )}
-          <h2 className="text-4xl md:text-6xl lg:text-8xl font-serif max-w-5xl leading-[1.1]">
+          <h2 className={`${titleSize} font-serif max-w-5xl leading-[1.1]`}>
             {data?.title || ""}
           </h2>
           {data?.description && (
-            <p className="mt-6 text-lg md:text-xl text-gray-300 max-w-2xl pointer-events-auto">
+            <p className={`mt-6 ${descSize} text-gray-300 max-w-2xl pointer-events-auto`}>
               {data.description}
             </p>
           )}
@@ -297,19 +317,20 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
 const baseProjects: any[] = [];
 const featuredProjects: any[] = [];
 
-const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () => void, project: any }) => {
+const Lightbox = ({ isOpen, onClose, project, allProjects = [] }: { isOpen: boolean, onClose: () => void, project: any, allProjects?: any[] }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
+  const [currentProject, setCurrentProject] = useState<any>(project);
+  const [direction, setDirection] = useState(0);
+  const [projectDirection, setProjectDirection] = useState(0);
+  const lightboxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      if (project?.id) {
-        fetchGalleryImages(project.id);
-      } else if (project?.gallery) {
-        setGalleryImages(project.gallery);
-      } else {
-        setGalleryImages([]);
+      setCurrentProject(project);
+      if (lightboxRef.current) {
+        lightboxRef.current.scrollTo(0, 0);
       }
     } else {
       document.body.style.overflow = '';
@@ -320,6 +341,18 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
       document.body.style.overflow = '';
     };
   }, [isOpen, project]);
+
+  useEffect(() => {
+    if (isOpen && currentProject) {
+      if (currentProject.id) {
+        fetchGalleryImages(currentProject.id);
+      } else if (currentProject.gallery) {
+        setGalleryImages(currentProject.gallery);
+      } else {
+        setGalleryImages([]);
+      }
+    }
+  }, [isOpen, currentProject]);
 
   const fetchGalleryImages = async (workId: string) => {
     try {
@@ -338,9 +371,12 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
       if (data) {
         setGalleryImages(data.map(img => ({ 
           url: img.image_url, 
+          media_type: img.media_type || 'image',
+          video_url: img.video_url || '',
           title: img.title || '', 
           description: img.description || '',
-          link: img.link || '#'
+          link: img.link || '#',
+          seo_alt_text: img.seo_alt_text || ''
         })));
       }
     } catch (err: any) {
@@ -350,9 +386,40 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
     }
   };
 
+  const handlePrevProject = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (currentProject && allProjects.length > 0) {
+      const currentIndex = allProjects.findIndex(w => w.id === currentProject.id);
+      if (currentIndex !== -1) {
+        setProjectDirection(-1);
+        const prevIndex = currentIndex === 0 ? allProjects.length - 1 : currentIndex - 1;
+        setCurrentProject(allProjects[prevIndex]);
+        if (lightboxRef.current) {
+          lightboxRef.current.scrollTo(0, 0);
+        }
+      }
+    }
+  };
+
+  const handleNextProject = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (currentProject && allProjects.length > 0) {
+      const currentIndex = allProjects.findIndex(w => w.id === currentProject.id);
+      if (currentIndex !== -1) {
+        setProjectDirection(1);
+        const nextIndex = currentIndex === allProjects.length - 1 ? 0 : currentIndex + 1;
+        setCurrentProject(allProjects[nextIndex]);
+        if (lightboxRef.current) {
+          lightboxRef.current.scrollTo(0, 0);
+        }
+      }
+    }
+  };
+
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (selectedImageIndex !== null && galleryImages.length > 0) {
+      setDirection(-1);
       setSelectedImageIndex(selectedImageIndex === 0 ? galleryImages.length - 1 : selectedImageIndex - 1);
     }
   };
@@ -360,6 +427,7 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
   const handleNextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (selectedImageIndex !== null && galleryImages.length > 0) {
+      setDirection(1);
       setSelectedImageIndex(selectedImageIndex === galleryImages.length - 1 ? 0 : selectedImageIndex + 1);
     }
   };
@@ -367,8 +435,9 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
   return (
     <>
       <AnimatePresence>
-        {isOpen && project && (
+        {isOpen && currentProject && (
           <motion.div
+            ref={lightboxRef}
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
@@ -381,65 +450,173 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
             >
               <X size={24} />
             </button>
+
+            {/* Project Navigation Arrows */}
+            {allProjects.length > 1 && (
+              <>
+                <button 
+                  onClick={handlePrevProject}
+                  className="fixed left-4 md:left-8 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/5 text-black rounded-full flex items-center justify-center hover:bg-black/10 transition-colors z-[110]"
+                  title="Progetto precedente"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button 
+                  onClick={handleNextProject}
+                  className="fixed right-4 md:right-8 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/5 text-black rounded-full flex items-center justify-center hover:bg-black/10 transition-colors z-[110]"
+                  title="Prossimo progetto"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </>
+            )}
             
-            <div className="max-w-7xl mx-auto px-6 md:px-12 pt-24 pb-32">
-              <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 mb-24">
-                {/* Left side: Text */}
-                <div className="w-full lg:w-1/2 flex flex-col">
-                  <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-4 font-bold">PROJECTS</div>
-                  <h2 className="text-5xl md:text-7xl font-sans tracking-tight mb-12 uppercase">{project.title}</h2>
-                  
-                  <div className="text-lg text-gray-600 space-y-6 leading-relaxed">
-                    {(project.description_top || project.description)?.split('\n').map((paragraph: string, i: number) => (
-                      <p key={i} className="min-h-[1rem]">{paragraph}</p>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Right side: Cover Image (Sticky) */}
-                <div className="w-full lg:w-1/2">
-                  <div className="sticky top-24 overflow-hidden rounded-3xl shadow-2xl group">
-                    {(project.cover_image_url || project.image) ? (
-                      <img 
-                        src={project.cover_image_url || project.image} 
-                        alt={project.title} 
-                        className="w-full object-cover aspect-[4/5] transition-transform duration-700 group-hover:scale-110 bg-gray-100"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-full aspect-[4/5] bg-gray-100" />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div 
+                key={currentProject.id}
+                initial={{ x: projectDirection * 100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -projectDirection * 100, opacity: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="max-w-7xl mx-auto px-6 md:px-12 pt-24 pb-32"
+              >
+                <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 mb-24">
+                  {/* Left side: Text */}
+                  <div className="w-full lg:w-1/2 flex flex-col">
+                    <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-4 font-bold">PROJECTS</div>
+                    <h2 className="text-5xl md:text-7xl font-sans tracking-tight mb-12 uppercase">{currentProject.title}</h2>
+                    
+                    <div className="text-lg text-gray-600 space-y-6 leading-relaxed">
+                      {(currentProject.description_top || currentProject.description)?.split('\n').map((paragraph: string, i: number) => (
+                        <p key={i} className="min-h-[1rem]">{paragraph}</p>
+                      ))}
+                    </div>
+
+                    {currentProject.link_url && (
+                      <a 
+                        href={currentProject.link_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-3 text-sm uppercase tracking-widest bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 transition-all mt-12 self-start"
+                      >
+                        {currentProject.link_label || 'Visit Project'} <ArrowUpRight size={18} />
+                      </a>
                     )}
                   </div>
-                </div>
-              </div>
-              
-              {/* Gallery Section */}
-              {galleryImages && galleryImages.length > 0 && (
-                <div className="border-t border-gray-200 pt-16">
-                  <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-12 font-bold">PROJECT GALLERY</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {galleryImages.map((img: any, idx: number) => (
-                      <div 
-                        key={idx}
-                        className="overflow-hidden rounded-2xl shadow-lg cursor-pointer group"
-                        onClick={() => setSelectedImageIndex(idx)}
-                      >
-                        {img.url ? (
+                  
+                  {/* Right side: Cover Image (Sticky) */}
+                  <div className="w-full lg:w-1/2">
+                    <div className="sticky top-24">
+                      <div className="overflow-hidden rounded-3xl shadow-2xl group bg-black/5">
+                        {currentProject.cover_media_type === 'youtube' ? (
+                          <div className="w-full aspect-video lg:aspect-auto lg:h-[80vh] rounded-3xl overflow-hidden shadow-2xl bg-black">
+                            <iframe 
+                              src={`${getYouTubeEmbedUrl(currentProject.cover_video_url)}?autoplay=1&mute=1&loop=1&playlist=${currentProject.cover_video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
+                              className="w-full h-full object-cover"
+                              style={{ minWidth: '142.22vh' }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                              allowFullScreen
+                            ></iframe>
+                          </div>
+                        ) : currentProject.cover_media_type === 'video' ? (
+                          <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center lg:h-[80vh]">
+                            <video 
+                              src={currentProject.cover_video_url} 
+                              controls 
+                              autoPlay 
+                              muted
+                              loop
+                              className="w-full h-full object-cover"
+                            ></video>
+                          </div>
+                        ) : (currentProject.cover_image_url || currentProject.image) ? (
                           <img 
-                            src={img.url}
-                            alt={img.title || `${project.title} gallery ${idx + 1}`}
-                            className="w-full object-cover aspect-video transition-transform duration-700 group-hover:scale-110"
+                            src={currentProject.cover_image_url || currentProject.image} 
+                            alt={currentProject.seo_alt_text || currentProject.title} 
+                            className="w-full object-cover aspect-[4/5] transition-transform duration-700 group-hover:scale-110 bg-gray-100"
                             referrerPolicy="no-referrer"
                           />
                         ) : (
-                          <div className="w-full aspect-video bg-gray-100" />
+                          <div className="w-full aspect-[4/5] bg-gray-100" />
                         )}
                       </div>
-                    ))}
+                      {currentProject.cover_image_caption && (
+                        <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-gray-400 font-bold text-right">
+                          {currentProject.cover_image_caption}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+                
+                {/* Gallery Section */}
+                {galleryImages && galleryImages.length > 0 && (
+                  <div className="border-t border-gray-200 pt-16 mb-24">
+                    <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-12 font-bold">PROJECT GALLERY</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {galleryImages.map((img: any, idx: number) => (
+                        <div 
+                          key={idx}
+                          className="overflow-hidden rounded-2xl shadow-lg cursor-pointer group relative bg-black"
+                          onClick={() => setSelectedImageIndex(idx)}
+                        >
+                          {img.media_type === 'youtube' ? (
+                            <div className="w-full aspect-video pointer-events-none">
+                              <iframe 
+                                src={`${getYouTubeEmbedUrl(img.video_url)}?autoplay=0&mute=1&controls=0&showinfo=0&rel=0`}
+                                className="w-full h-full"
+                                allow="autoplay; encrypted-media"
+                              ></iframe>
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
+                                  <Play size={24} fill="currentColor" />
+                                </div>
+                              </div>
+                            </div>
+                          ) : img.media_type === 'video' ? (
+                            <div className="w-full aspect-video pointer-events-none">
+                              <video 
+                                src={img.video_url} 
+                                muted 
+                                className="w-full h-full object-cover"
+                              ></video>
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
+                                  <Play size={24} fill="currentColor" />
+                                </div>
+                              </div>
+                            </div>
+                          ) : img.url ? (
+                            <>
+                              <img 
+                                src={img.url}
+                                alt={img.seo_alt_text || img.title || `${currentProject.title} gallery ${idx + 1}`}
+                                className="w-full object-cover aspect-video transition-transform duration-700 group-hover:scale-110"
+                                referrerPolicy="no-referrer"
+                              />
+                            </>
+                          ) : (
+                            <div className="w-full aspect-video bg-gray-100" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description Bottom */}
+                {currentProject.description_bottom && (
+                  <div className="border-t border-gray-200 pt-16">
+                    <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-8 font-bold">ADDITIONAL DETAILS</div>
+                    <div className="text-lg text-gray-600 space-y-6 leading-relaxed max-w-4xl">
+                      {currentProject.description_bottom.split('\n').map((paragraph: string, i: number) => (
+                        <p key={i} className="min-h-[1rem]">{paragraph}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -477,13 +654,34 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
             
             <div className="min-h-screen flex flex-col items-center p-4 py-24 md:p-12 md:py-24">
               <div className="relative w-full max-w-6xl flex flex-col items-center my-auto" onClick={(e) => e.stopPropagation()}>
-                {galleryImages[selectedImageIndex].url ? (
+                {galleryImages[selectedImageIndex].media_type === 'youtube' ? (
+                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black">
+                    <iframe 
+                      src={`${getYouTubeEmbedUrl(galleryImages[selectedImageIndex].video_url)}?autoplay=1&mute=1&loop=1&playlist=${galleryImages[selectedImageIndex].video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
+                      className="w-full h-full object-cover"
+                      style={{ minWidth: '160vh' }}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                ) : galleryImages[selectedImageIndex].media_type === 'video' ? (
+                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+                    <video 
+                      src={galleryImages[selectedImageIndex].video_url} 
+                      controls 
+                      autoPlay 
+                      muted
+                      loop
+                      className="w-full h-full object-cover"
+                    ></video>
+                  </div>
+                ) : galleryImages[selectedImageIndex].url ? (
                   <motion.img 
                     key={selectedImageIndex} // Force re-render on index change for animation
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    initial={{ x: direction * 100, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: -direction * 100, opacity: 0 }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                     src={galleryImages[selectedImageIndex].url} 
                     alt={galleryImages[selectedImageIndex].title || "Gallery fullscreen"} 
                     className="w-full h-auto object-contain rounded-lg shadow-2xl"
@@ -511,9 +709,9 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
                       href={galleryImages[selectedImageIndex].link} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm uppercase tracking-widest text-white/70 hover:text-white transition-colors border-b border-white/30 hover:border-white pb-1"
+                      className="inline-flex items-center gap-3 text-sm uppercase tracking-widest text-white hover:text-redd-accent transition-all border border-white/20 px-8 py-4 rounded-full bg-white/5 hover:bg-white/10"
                     >
-                      View Details <ArrowUpRight size={16} />
+                      {galleryImages[selectedImageIndex].title || "VISIT LINK"} <ArrowUpRight size={18} />
                     </a>
                   )}
                   
@@ -531,7 +729,7 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
   );
 };
 
-const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuClick, onOpenLightbox, index = 0, sticky = true, showOverlay = true }: { title: string, galleryId?: string, projects: any[], isLast?: boolean, onMenuClick?: () => void, onOpenLightbox?: (project: any) => void, key?: string | number, index?: number, sticky?: boolean, showOverlay?: boolean }) => {
+const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuClick, onOpenLightbox, index = 0, sticky = true, showOverlay = true }: { title: string, galleryId?: string, projects: any[], isLast?: boolean, onMenuClick?: () => void, onOpenLightbox?: (project: any, projects?: any[]) => void, key?: string | number, index?: number, sticky?: boolean, showOverlay?: boolean }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -554,8 +752,12 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
     offset: ["start end", "start start"]
   });
 
+  const isPersonaggi = title === 'Personaggi' || title === 'PERSONAGGI';
   const padding = useTransform(entranceProgress, [0.4, 1], ["24px", "0px"]);
-  const borderRadius = useTransform(entranceProgress, [0.4, 1], ["2rem", "0rem"]);
+  const bottomPadding = useTransform(entranceProgress, [0.4, 1], [
+    isLast ? "62px" : (isPersonaggi ? "24px" : "24px"),
+    isLast ? "38px" : (isPersonaggi ? "0px" : "0px")
+  ]);
   const entranceOpacity = useTransform(entranceProgress, [0.1, 0.5], [0, 1]);
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -589,26 +791,32 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
   };
 
   const getStyles = (rel: number) => {
+    const vMargin = isPersonaggi ? '3rem' : '2rem';
+    const totalVMargin = isPersonaggi ? '6rem' : '4rem';
+    const smallVMargin = isPersonaggi ? '9rem' : '8rem';
+    const smallTotalVMargin = isPersonaggi ? '18rem' : '16rem';
+
     if (rel === 0) {
       return {
         width: '65vw',
-        height: 'calc(100vh - 4rem)',
+        height: `calc(100vh - ${totalVMargin})`,
         left: '0vw',
-        top: '2rem',
+        top: vMargin,
         zIndex: 40,
         opacity: 1,
         borderTopRightRadius: '3rem',
-        borderBottomLeftRadius: isLast ? '3rem' : '0',
+        borderBottomLeftRadius: isLast ? '3rem' : '0rem',
         borderBottomRightRadius: '0rem',
+        borderTopLeftRadius: '0rem',
       };
     } else if (rel > 0) {
-      const offset = 2 + (rel - 1) * 26;
-      const margin = (rel - 1) * 2;
+      const offset = 2; // 2rem gap from the main image
+      const margin = (rel - 1) * 2; // 2rem gap between small images
       return {
         width: '26vw',
-        height: 'calc(100vh - 16rem)',
-        left: `calc(65vw + ${offset}vw + ${margin}rem)`,
-        top: '8rem',
+        height: `calc(100vh - ${smallTotalVMargin})`,
+        left: `calc(65vw + ${offset}rem + ${(rel - 1) * 26}vw + ${margin}rem)`,
+        top: smallVMargin,
         zIndex: 30 - Math.min(rel, 10),
         opacity: rel > 3 ? 0 : 1,
         borderTopRightRadius: '0rem',
@@ -618,9 +826,9 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
     } else {
       return {
         width: '65vw',
-        height: 'calc(100vh - 4rem)',
+        height: `calc(100vh - ${totalVMargin})`,
         left: '-100vw',
-        top: '2rem',
+        top: vMargin,
         zIndex: 10,
         opacity: 0,
         borderTopRightRadius: '3rem',
@@ -638,11 +846,9 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
   return (
     <motion.section 
       ref={ref} 
-      className={`${sticky ? 'sticky top-0' : 'relative'} h-screen w-full overflow-hidden bg-transparent`}
+      className={`${sticky ? 'sticky top-0' : 'relative'} h-screen w-full bg-transparent`}
       style={{ 
         zIndex: index,
-        borderBottomLeftRadius: isLast ? '3rem' : '0',
-        borderBottomRightRadius: isLast ? '3rem' : '0',
         pointerEvents: pointerEvents
       }}
     >
@@ -650,23 +856,28 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
         paddingTop: padding, 
         paddingLeft: padding, 
         paddingRight: padding, 
-        paddingBottom: padding,
+        paddingBottom: bottomPadding,
         width: '100%', 
         height: '100%', 
-        backgroundColor: '#F7F7F5',
-        borderBottomLeftRadius: isLast ? '3rem' : '0',
-        borderBottomRightRadius: isLast ? '3rem' : '0'
+        backgroundColor: 'transparent',
+        position: 'relative'
       }}>
-        <div className="relative w-full h-full bg-[#F7F7F5] overflow-hidden" style={{ 
-          borderBottomLeftRadius: isLast ? '3rem' : '0',
-          borderBottomRightRadius: isLast ? '3rem' : '0'
-        }}>
+        {/* Aggressive background layer that plunges slightly into the footer area to cover gaps */}
+        {/* Height is calculated to make the 4rem (64px) rounding start ~20px (0.5cm) below the image */}
+        {isLast && (
+          <div 
+            className="absolute top-0 left-0 w-full h-[calc(100%+52px)] bg-[#F7F7F5]" 
+            style={{ 
+              zIndex: -1,
+              clipPath: 'inset(0 0 0 0 round 0 0 3rem 3rem)'
+            }} 
+          />
+        )}
+        {!isLast && (
+          <div className="absolute inset-0 bg-[#F7F7F5] -z-10" />
+        )}
+        <div className={`relative w-full h-full ${isLast ? '' : 'overflow-hidden'}`} style={{ borderBottomLeftRadius: isLast ? '3rem' : '0' }}>
           <motion.div style={{ opacity: entranceOpacity }} className="w-full h-full">
-            {/* Background Layers */}
-          <div className="absolute inset-x-0 top-0 bottom-4 md:bottom-6 flex pointer-events-none">
-            <div className="w-[65vw] h-full bg-[#F7F7F5]" />
-            <div className="w-[35vw] h-full bg-[#F7F7F5]" />
-          </div>
 
       {/* Header aligned with the small image */}
       <motion.div 
@@ -674,12 +885,15 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8 }}
-        className="absolute top-3 md:top-6 left-[calc(65vw+2rem)] w-[26vw] flex flex-col items-center pointer-events-none z-50 gap-1"
+        className={`absolute ${isPersonaggi ? 'top-6 md:top-12' : 'top-3 md:top-6'} left-[calc(65vw+2rem)] w-[26vw] flex flex-col items-center pointer-events-none z-50 gap-1`}
       >
         <h3 className="text-xl md:text-3xl font-sans uppercase tracking-tight text-redd-dark font-medium mb-0">{title}</h3>
         {projects && projects.length > 0 && galleryId && (
           <Link 
             to={`/gallery/${galleryId}`}
+            onClick={() => {
+              sessionStorage.setItem('homeScrollPos', window.scrollY.toString());
+            }}
             className="pointer-events-auto shadow-xl px-8 py-3.5 text-[10px] md:text-xs uppercase tracking-widest hover:bg-redd-dark hover:text-white transition-all flex items-center justify-center gap-2 bg-white whitespace-nowrap rounded-none font-bold text-redd-dark"
           >
             APRI GALLERIA <ArrowRight size={12} />
@@ -692,6 +906,9 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
             {(() => {
               const items = [];
               for (let rel = -1; rel <= 4; rel++) {
+                // If there's only one project, only render it at the center position (rel = 0)
+                if (projects.length === 1 && rel !== 0) continue;
+                
                 const index = activeIndex + rel;
                 const projectIndex = ((index % projects.length) + projects.length) % projects.length;
                 const proj = projects[projectIndex];
@@ -703,7 +920,7 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
                       initial={false}
                       animate={styles}
                       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                      className="absolute overflow-hidden shadow-xl cursor-grab active:cursor-grabbing group select-none pointer-events-auto z-20"
+                      className="absolute overflow-hidden cursor-grab active:cursor-grabbing group select-none pointer-events-auto z-20"
                       drag="x"
                       dragConstraints={{ left: 0, right: 0 }}
                       dragElastic={0.1}
@@ -713,15 +930,43 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
                       onDragEnd={handleDragEnd}
                       onTap={() => {
                         if (!isDraggingRef.current && rel === 0 && onOpenLightbox) {
-                          onOpenLightbox(proj);
+                          onOpenLightbox(proj, projects);
                         }
                       }}
                     >
-                      <ParallaxImage 
-                        src={proj.cover_image_url || proj.image || null} 
-                        alt={proj.title} 
-                        className="w-full h-full pointer-events-none bg-gray-200"
-                      />
+                      <div className="w-full h-full pointer-events-none bg-gray-200">
+                        {rel === 0 && proj.cover_media_type === 'youtube' ? (
+                          <iframe 
+                            src={`${getYouTubeEmbedUrl(proj.cover_video_url)}?autoplay=1&mute=1&loop=1&playlist=${proj.cover_video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`}
+                            className="w-full h-full object-cover"
+                            style={{ minWidth: '177.77vh' }}
+                            allow="autoplay; encrypted-media"
+                          ></iframe>
+                        ) : rel === 0 && proj.cover_media_type === 'video' ? (
+                          <video 
+                            src={proj.cover_video_url} 
+                            autoPlay 
+                            muted 
+                            loop 
+                            playsInline
+                            className="w-full h-full object-cover"
+                          ></video>
+                        ) : (
+                          <ParallaxImage 
+                            src={proj.cover_image_url || proj.image || null} 
+                            alt={proj.seo_alt_text || proj.title} 
+                            className="w-full h-full"
+                          />
+                        )}
+                      </div>
+
+                      {(proj.cover_media_type === 'video' || proj.cover_media_type === 'youtube') && rel !== 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-colors pointer-events-none">
+                          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
+                            <Play size={32} fill="currentColor" />
+                          </div>
+                        </div>
+                      )}
                       
                       <motion.div 
                         animate={{ opacity: rel === 0 ? 1 : 0 }}
@@ -732,7 +977,7 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
                       <motion.div 
                         animate={{ opacity: rel > 0 ? 1 : 0 }}
                         transition={{ duration: 0.4 }}
-                        className="absolute inset-0 bg-gradient-to-b from-redd-light/80 via-transparent to-transparent pointer-events-none" 
+                        className="absolute inset-x-0 top-0 h-[50%] bg-gradient-to-b from-redd-light via-redd-light/60 to-transparent pointer-events-none" 
                       />
 
                       {/* Hover dark gradient for readability - only for active image */}
@@ -792,36 +1037,38 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
     <div className="w-[calc(65vw+2rem)] pointer-events-none" />
     <div className="flex-1 flex flex-col justify-center items-center pr-8 md:pr-12 pointer-events-none gap-4">
       {/* Navigation Controls */}
-      <div className="flex items-center gap-6 pointer-events-auto relative z-[510]">
-        <button 
-          className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
-          onClick={(e) => {
-            e.stopPropagation();
-            handlePrev();
-          }}
-          title="Previous"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        
-        <div className="flex flex-col items-center gap-0 pointer-events-none">
-          <span className="text-[10px] uppercase tracking-widest font-bold text-redd-dark/40">Navigation</span>
-          <div className="text-xl md:text-2xl font-sans tracking-tight text-redd-dark font-medium">
-            {safeActiveIndex + 1} <span className="text-redd-dark/30 mx-1">/</span> {projects.length}
+      {projects.length > 1 && (
+        <div className="flex items-center gap-6 pointer-events-auto relative z-[510]">
+          <button 
+            className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
+            title="Previous"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          
+          <div className="flex flex-col items-center gap-0 pointer-events-none">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-redd-dark/40">Navigation</span>
+            <div className="text-xl md:text-2xl font-sans tracking-tight text-redd-dark font-medium">
+              {safeActiveIndex + 1} <span className="text-redd-dark/30 mx-1">/</span> {projects.length}
+            </div>
           </div>
-        </div>
 
-        <button 
-          className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
-          onClick={(e) => {
-            e.stopPropagation();
-            handleNext();
-          }}
-          title="Next"
-        >
-          <ChevronRight size={24} />
-        </button>
-      </div>
+          <button 
+            className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            title="Next"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
+      )}
     </div>
   </motion.div>
     {showOverlay && !isLast && <motion.div style={{ opacity: overlayOpacity }} className="absolute inset-0 bg-black z-[600] pointer-events-none" />}
@@ -959,7 +1206,7 @@ const LetsTalk = ({ data, settings, index = 0, sticky = true }: { data: any, set
             {data?.subtitle || ""}
           </p>
         
-          <h2 className={`${titleSize} font-serif leading-none text-white hover:text-redd-accent transition-colors cursor-pointer max-w-6xl`}>
+          <h2 className={`${titleSize} font-serif leading-none text-white max-w-6xl`}>
             {data?.title ? (
               <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
             ) : (
@@ -1032,7 +1279,7 @@ const Footer = ({ settings }: { settings: any }) => {
   return (
     <motion.footer 
       style={{ y: springY }}
-      className="w-full bg-[#161a1d] text-[#8e9299] pt-24 md:pt-32 pb-12 px-6 md:px-16 lg:px-24 flex flex-col justify-center relative z-50"
+      className="w-full bg-[#000000] text-[#8e9299] pt-32 md:pt-48 pb-12 px-6 md:px-16 lg:px-24 flex flex-col justify-center relative z-50"
     >
       <motion.div 
         style={{ y: contentSpringY }}
@@ -1054,11 +1301,17 @@ const Footer = ({ settings }: { settings: any }) => {
         {/* Center Column - Brand */}
         <motion.div variants={itemVariants} className="flex flex-col flex-1 w-full">
           <div className={`w-full ${settings?.footer_title_align || 'text-center'}`}>
-            <h2 className={`${settings?.footer_title_size || 'text-5xl'} font-bold tracking-tight text-white mb-2 uppercase leading-none`}>
-              {settings?.footer_title || settings?.header_title || "LORENZO PACI"}
-            </h2>
+            <Link 
+              to="/" 
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="inline-block hover:opacity-80 transition-opacity"
+            >
+              <h2 className={`${settings?.footer_title_size || 'text-5xl'} font-bold tracking-tight text-white mb-2 uppercase leading-none`}>
+                {settings?.footer_title || settings?.header_title || "SPIEGATO IN BREVE"}
+              </h2>
+            </Link>
             <p className={`${settings?.footer_subtitle_size || 'text-xs'} tracking-[0.3em] uppercase mb-8 text-[#8e9299]`}>
-              {settings?.footer_subtitle || settings?.header_subtitle || "Creative Visionary"}
+              {settings?.footer_subtitle || settings?.header_subtitle || "CINEMA & POP CULTURE"}
             </p>
           </div>
           
@@ -1122,7 +1375,7 @@ const Footer = ({ settings }: { settings: any }) => {
   );
 };
 
-const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, settings, groupedWorks }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any) => void; settings: any; groupedWorks: Record<string, any[]> }) => {
+const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, settings, groupedWorks }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any, projects?: any[]) => void; settings: any; groupedWorks: Record<string, any[]> }) => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [expandedSubItem, setExpandedSubItem] = useState<string | null>(null);
 
@@ -1171,7 +1424,7 @@ const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, set
           {/* Left Side: Navigation & Info */}
           <div className="w-full md:w-1/2 h-full flex flex-col justify-between p-6 md:p-12 lg:p-24 overflow-y-auto overflow-x-hidden">
             <div className="flex justify-between items-center shrink-0">
-              <Link to="/" onClick={onClose} className="text-xl font-medium tracking-tight uppercase hover:opacity-80 transition-opacity">LORENZO PACI</Link>
+              <Link to="/" onClick={onClose} className="text-xl font-medium tracking-tight uppercase hover:opacity-80 transition-opacity">SPIEGATO IN BREVE</Link>
               <button onClick={onClose} className="md:hidden flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity bg-white px-4 py-2 rounded-full shadow-sm">
                 <X size={16} /> CHIUDI
               </button>
@@ -1274,7 +1527,7 @@ const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, set
                                       key={project.id}
                                       onClick={() => {
                                         onClose();
-                                        onOpenLightbox(project);
+                                        onOpenLightbox(project, subItem.projects);
                                       }}
                                       className="text-base md:text-lg lg:text-xl font-serif ml-8 md:ml-12 hover:text-redd-accent transition-colors flex items-center justify-between group py-1 text-left"
                                     >
@@ -1334,14 +1587,14 @@ const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, set
             </motion.div>
           </div>
 
-          <div className="hidden md:block w-1/2 h-full relative bg-[#161a1d] overflow-hidden">
+          <div className="hidden md:block w-1/2 h-full relative bg-[#000000] overflow-hidden">
             {settings.menu_image ? (
               <motion.img 
                 initial={{ scale: 1.1, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                 src={settings.menu_image} 
-                alt="Menu background" 
+                alt={settings.seo_title || "Menu background"} 
                 className="w-full h-full object-cover opacity-60"
                 referrerPolicy="no-referrer"
               />
@@ -1364,6 +1617,7 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [lightboxProjects, setLightboxProjects] = useState<any[]>([]);
   const [works, setWorks] = useState<Work[]>([]);
   const [galleryNames, setGalleryNames] = useState<Record<string, string>>({});
   const [sectionsData, setSectionsData] = useState<Record<string, any>>({});
@@ -1373,6 +1627,15 @@ export default function App() {
 
   useEffect(() => {
     let isMounted = true;
+    
+    // Safety timeout to prevent infinite loading
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted && isLoading) {
+        console.warn("Data fetching timed out. Forcing loading to false.");
+        setIsLoading(false);
+      }
+    }, 8000);
+
     async function fetchData() {
       setIsLoading(true);
       setError(null);
@@ -1449,11 +1712,92 @@ export default function App() {
       }
     }
     fetchData();
-    return () => { isMounted = false; };
+    return () => { 
+      isMounted = false;
+      clearTimeout(safetyTimeout);
+    };
   }, []);
 
-  const handleOpenLightbox = (project: any) => {
+  useEffect(() => {
+    // Restore scroll position if returning from a gallery
+    if (!isLoading) {
+      const savedScrollPos = sessionStorage.getItem('homeScrollPos');
+      if (savedScrollPos) {
+        // Delay to ensure content is rendered and user sees the top briefly
+        const timer = setTimeout(() => {
+          const target = parseInt(savedScrollPos);
+          const start = window.scrollY;
+          const distance = target - start;
+          const duration = 1500; // Slower duration (1.5 seconds)
+          let startTime: number | null = null;
+
+          function animation(currentTime: number) {
+            if (startTime === null) startTime = currentTime;
+            const timeElapsed = currentTime - startTime;
+            const run = ease(timeElapsed, start, distance, duration);
+            window.scrollTo(0, run);
+            if (timeElapsed < duration) requestAnimationFrame(animation);
+          }
+
+          function ease(t: number, b: number, c: number, d: number) {
+            t /= d / 2;
+            if (t < 1) return c / 2 * t * t + b;
+            t--;
+            return -c / 2 * (t * (t - 2) - 1) + b;
+          }
+
+          requestAnimationFrame(animation);
+          sessionStorage.removeItem('homeScrollPos');
+        }, 800); // Increased delay (800ms)
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
+    // Apply SEO settings
+    if (settings) {
+      if (settings.seo_title) {
+        document.title = settings.seo_title;
+      } else if (settings.header_title) {
+        document.title = `${settings.header_title} | Portfolio`;
+      }
+
+      const updateMeta = (name: string, content: string, isProperty = false) => {
+        if (!content) return;
+        let meta = document.querySelector(isProperty ? `meta[property="${name}"]` : `meta[name="${name}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          if (isProperty) meta.setAttribute('property', name);
+          else meta.setAttribute('name', name);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+
+      updateMeta('description', settings.seo_description || '');
+      updateMeta('keywords', settings.seo_keywords || '');
+      updateMeta('og:title', settings.seo_title || document.title, true);
+      updateMeta('og:description', settings.seo_description || '', true);
+      updateMeta('og:image', settings.seo_og_image || '', true);
+      updateMeta('og:url', window.location.href, true);
+      updateMeta('twitter:card', 'summary_large_image');
+
+      if (settings.seo_favicon) {
+        let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = settings.seo_favicon;
+      }
+    }
+  }, [settings]);
+
+  const handleOpenLightbox = (project: any, projects: any[] = []) => {
     setSelectedProject(project);
+    setLightboxProjects(projects);
     setIsLightboxOpen(true);
   };
 
@@ -1479,13 +1823,13 @@ export default function App() {
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0 }} 
       transition={{ duration: 0.5 }}
-      className="min-h-screen text-redd-dark selection:bg-redd-accent selection:text-white bg-[#161a1d]"
+      className="min-h-screen text-redd-dark selection:bg-redd-accent selection:text-white bg-[#000000]"
     >
-      <Lightbox isOpen={isLightboxOpen} onClose={() => setIsLightboxOpen(false)} project={selectedProject} />
+      <Lightbox isOpen={isLightboxOpen} onClose={() => setIsLightboxOpen(false)} project={selectedProject} allProjects={lightboxProjects} />
       <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} galleryNames={galleryNames} works={works} onOpenLightbox={handleOpenLightbox} settings={settings} groupedWorks={groupedWorks} />
       <Navbar onMenuClick={() => setIsMenuOpen(true)} settings={settings} />
       
-      <main className="relative z-10 bg-transparent shadow-xl min-h-screen">
+      <main className="relative z-10 bg-transparent min-h-screen">
         {isLoading ? (
           <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
             <div className="w-12 h-12 border-4 border-redd-accent border-t-transparent rounded-full animate-spin mb-6"></div>
@@ -1538,6 +1882,7 @@ export default function App() {
             */}
             {(() => {
               const workingWorks = groupedWorks['galleria 3'] || works;
+              const galleryKeys = ['galleria 3', 'galleria 2', 'galleria 1'];
               const galleryTitles = [
                 galleryNames['galleria 3'] || 'YouTube',
                 galleryNames['galleria 2'] || 'Personaggi',
@@ -1548,14 +1893,15 @@ export default function App() {
                 const isLast = i === 2;
                 const galleryZIndex = 100 + i * 50;
                 const title = galleryTitles[i];
-                const galleryId = `gallery-${i}`;
+                const galleryId = galleryKeys[i].replace(/\s+/g, '-');
+                const galleryWorks = groupedWorks[galleryKeys[i]] || [];
 
                 return (
                   <React.Fragment key={i}>
                     <HorizontalGallery 
                       title={title} 
                       galleryId={galleryId} 
-                      projects={workingWorks} 
+                      projects={galleryWorks} 
                       isLast={isLast}
                       index={galleryZIndex}
                       sticky={i !== 1}
@@ -1576,11 +1922,12 @@ export default function App() {
                 );
               });
             })()}
+            <div className="h-[20vh] bg-transparent" />
           </>
         )}
       </main>
       <div className="relative z-0">
-        <div className="fixed bottom-0 left-0 w-full -z-10 bg-[#161a1d]">
+        <div className="fixed bottom-0 left-0 w-full -z-10 bg-[#000000]">
           <Footer settings={settings} />
         </div>
         <div className="invisible pointer-events-none">

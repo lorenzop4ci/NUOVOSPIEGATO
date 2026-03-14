@@ -13,6 +13,7 @@ CREATE TABLE works (
   description_top TEXT,
   description_bottom TEXT,
   group_name TEXT NOT NULL, -- es: 'galleria 3', 'sezione 1'
+  seo_alt_text TEXT,
   display_order INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -25,6 +26,7 @@ CREATE TABLE work_images (
   title TEXT,
   description TEXT,
   link TEXT,
+  seo_alt_text TEXT,
   display_order INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
