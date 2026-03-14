@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, X, ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, X, ChevronLeft, ChevronRight, ArrowUpRight, Plus } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 export default function FullGallery() {
@@ -138,7 +138,7 @@ export default function FullGallery() {
       </nav>
 
       {/* Main Content */}
-      <main className="pt-32 px-6 md:px-12 pb-24 max-w-[1600px] mx-auto">
+      <main className="pt-32 px-6 md:px-12 pb-24 max-w-[1600px] mx-auto min-h-screen">
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -147,34 +147,43 @@ export default function FullGallery() {
           {galleryName}
         </motion.h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-          {works.map((work, idx) => (
-            <motion.div 
-              key={work.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="group cursor-pointer flex flex-col"
-              onClick={() => handleOpenLightbox(work)}
-            >
-              <div className="overflow-hidden rounded-2xl shadow-lg mb-6 aspect-[4/5] relative">
-                {(work.cover_image_url || work.image) ? (
-                  <img 
-                    src={work.cover_image_url || work.image} 
-                    alt={work.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 bg-gray-100"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-100" />
-                )}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              </div>
-              <h3 className="text-2xl font-serif font-bold mb-2 uppercase">{work.title}</h3>
-              <p className="text-gray-500 line-clamp-2 text-sm">{work.description_top || work.description}</p>
-            </motion.div>
-          ))}
-        </div>
+        {works.length === 0 ? (
+          <div className="py-24 text-center">
+            <p className="text-gray-400 uppercase tracking-widest text-sm italic">Nessun lavoro trovato in questa galleria.</p>
+            <Link to="/" className="inline-block mt-8 text-black font-bold uppercase tracking-widest text-xs border-b border-black pb-1">Torna alla Home</Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+            {works.map((work, idx) => (
+              <motion.div 
+                key={work.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="group cursor-pointer flex flex-col"
+                onClick={() => handleOpenLightbox(work)}
+              >
+                <div className="overflow-hidden rounded-2xl shadow-lg mb-6 aspect-[4/5] relative bg-gray-100">
+                  {(work.cover_image_url || work.image) ? (
+                    <img 
+                      src={work.cover_image_url || work.image} 
+                      alt={work.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                      <Plus size={48} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                </div>
+                <h3 className="text-2xl font-serif font-bold mb-2 uppercase">{work.title}</h3>
+                <p className="text-gray-500 line-clamp-2 text-sm">{work.description_top || work.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </main>
 
       {/* Lightbox 1: Project Details */}

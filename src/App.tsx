@@ -46,7 +46,7 @@ const Navbar = ({ onMenuClick, settings }: { onMenuClick: () => void, settings: 
   }, []);
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 pt-6 pb-12 transition-all duration-500 ${scrolled ? 'bg-gradient-to-b from-redd-light/100 via-redd-light/80 to-transparent text-redd-dark' : 'text-white'}`}>
+    <nav className={`fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 pt-6 pb-6 transition-all duration-500 ${scrolled ? 'bg-gradient-to-b from-redd-light/100 via-redd-light/40 to-transparent text-redd-dark' : 'text-white'}`}>
       <Link 
         to="/" 
         onClick={(e) => {
@@ -82,13 +82,16 @@ const Navbar = ({ onMenuClick, settings }: { onMenuClick: () => void, settings: 
 };
 
 const Hero = ({ data, settings }: { data: any, settings: any }) => {
-  const { scrollY } = useScroll();
-  const scale = useTransform(scrollY, [0, 1500], [1, 1.3]);
-  const overlayOpacity = useTransform(scrollY, [0, 800], [0, 0.8]);
-  const textY = useTransform(scrollY, [0, 800], [0, -250]);
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"]
+  });
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.6]);
+  const textY = useTransform(scrollYProgress, [0, 1], [0, -250]);
 
   return (
-    <section className="relative z-0 h-[100vh] w-full bg-redd-dark">
+    <section ref={ref} className="relative z-0 h-[100vh] w-full bg-redd-dark">
       <div className="absolute top-0 left-0 h-full w-full overflow-hidden -z-10">
         <div className="sticky top-0 h-screen w-full">
           {data?.image_url && (
@@ -100,8 +103,7 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
               referrerPolicy="no-referrer"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <motion.div style={{ opacity: overlayOpacity }} className="absolute inset-0 bg-black pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         </div>
       </div>
       <motion.div style={{ y: textY }} className={`absolute top-0 left-0 w-full h-screen flex flex-col justify-end p-6 md:p-16 lg:p-24 pb-24 md:pb-32 pointer-events-none ${data?.title_align === 'center' ? 'items-center text-center' : 'items-start text-left'}`}>
@@ -131,12 +133,27 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
             {data.link_text} <ArrowRight size={20} />
           </a>
         )}
+
+        {/* Scroll Indicator */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5, duration: 1 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        >
+          <span className="text-[10px] uppercase tracking-[0.3em] text-white/50">Scroll</span>
+          <motion.div 
+            animate={{ y: [0, 10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-px h-12 bg-gradient-to-b from-white/50 to-transparent"
+          />
+        </motion.div>
       </motion.div>
     </section>
   );
 };
 
-const Process = ({ data, settings }: { data: any, settings: any }) => {
+const Process = ({ data, settings, index = 0, sticky = true }: { data: any, settings: any, index?: number, sticky?: boolean }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -145,6 +162,13 @@ const Process = ({ data, settings }: { data: any, settings: any }) => {
   const y = useTransform(scrollYProgress, [0, 1], ["-15%", "15%"]);
   const textY = useTransform(scrollYProgress, [0, 1], ["30%", "-30%"]);
 
+  const { scrollYProgress: activeProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "start start"]
+  });
+
+  const pointerEvents = useTransform(activeProgress, [0, 0.9, 1], ["none", "none", "auto"]);
+
   const { scrollYProgress: entranceProgress } = useScroll({
     target: ref,
     offset: ["start end", "start start"]
@@ -152,19 +176,32 @@ const Process = ({ data, settings }: { data: any, settings: any }) => {
 
   const padding = useTransform(entranceProgress, [0.4, 1], ["24px", "0px"]);
   const borderRadius = useTransform(entranceProgress, [0.4, 1], ["48px", "0px"]);
+  const entranceScale = useTransform(entranceProgress, [0, 1], [0.6, 1]);
+  const entranceOpacity = useTransform(entranceProgress, [0, 0.5], [0, 1]);
 
   const steps = [
     { title: settings?.col1_title || "", desc: settings?.col1_text || "", link: "/gallery/galleria-3" },
     { title: settings?.col2_title || "", desc: settings?.col2_text || "", link: "/gallery/galleria-2" },
     { title: settings?.col3_title || "", desc: settings?.col3_text || "", link: "/gallery/galleria-1" },
-    { title: settings?.col4_title || "", desc: settings?.col4_text || "", link: "/about" }
+    { title: settings?.col4_title || "", desc: settings?.col4_text || "" , link: "/about" }
   ];
 
   return (
-    <section ref={ref} className="relative z-10 h-[80vh] md:h-screen w-full bg-redd-light">
-      <motion.div style={{ paddingTop: padding, paddingLeft: padding, paddingRight: padding, width: '100%', height: '100%' }}>
+    <section ref={ref} className={`${sticky ? 'sticky top-0' : 'relative'} z-10 h-[80vh] md:h-screen w-full bg-transparent`} style={{ borderTopLeftRadius: '3rem', borderTopRightRadius: '3rem', overflow: 'hidden', zIndex: index, pointerEvents }}>
+      <motion.div style={{ 
+        paddingTop: `calc(${padding} + 4rem)`, 
+        paddingLeft: padding, 
+        paddingRight: padding, 
+        width: '100%', 
+        height: '100%', 
+        borderTopLeftRadius: '3rem', 
+        borderTopRightRadius: '3rem', 
+        overflow: 'hidden',
+        scale: entranceScale,
+        opacity: entranceOpacity
+      }}>
         <motion.div 
-          style={{ overflow: 'hidden' }}
+          style={{ overflow: 'hidden', borderTopLeftRadius: '3rem', borderTopRightRadius: '3rem' }}
           className="relative h-full w-full bg-redd-dark text-white flex flex-col md:flex-row"
         >
         {/* Background Image */}
@@ -212,8 +249,10 @@ const Process = ({ data, settings }: { data: any, settings: any }) => {
           )}
         </motion.div>
 
-        {/* 4 Columns (Desktop) */}
-        <div className="relative z-20 hidden md:flex w-full h-full">
+        <motion.div 
+          style={{ opacity: 1 }}
+          className="relative z-20 hidden md:flex w-full h-full"
+        >
           {steps.map((step, i) => (
             <div 
               key={i} 
@@ -225,21 +264,17 @@ const Process = ({ data, settings }: { data: any, settings: any }) => {
               <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               
               <Link to={step.link} className="absolute inset-x-0 bottom-0 h-1/2 z-20" />
-
-              <div className="relative z-10 transform transition-transform duration-500 group-hover:-translate-y-4 pointer-events-none">
-                <h3 className="text-2xl lg:text-3xl font-bold mb-4 flex items-center gap-4">
-                  {step.title}
-                  <ArrowRight className="opacity-0 group-hover:opacity-100 transition-opacity duration-500" size={24} />
-                </h3>
-                <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-all duration-500">
-                  <p className="overflow-hidden text-sm lg:text-base text-gray-300">
-                    {step.desc}
-                  </p>
-                </div>
+              
+              <div className="relative z-10">
+                <div className="text-redd-accent font-mono text-xs mb-2">0{i + 1}</div>
+                <h4 className="text-xl font-bold uppercase tracking-widest mb-2 group-hover:text-redd-accent transition-colors">{step.title}</h4>
+                <p className="text-sm text-gray-400 max-w-[200px] line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  {step.desc}
+                </p>
               </div>
             </div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Mobile List */}
         <div className="relative z-20 flex md:hidden flex-col justify-end h-full w-full p-6 pb-12 gap-6">
@@ -496,13 +531,23 @@ const Lightbox = ({ isOpen, onClose, project }: { isOpen: boolean, onClose: () =
   );
 };
 
-const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuClick, onOpenLightbox }: { title: string, galleryId?: string, projects: any[], isLast?: boolean, onMenuClick?: () => void, onOpenLightbox?: (project: any) => void, key?: string | number }) => {
+const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuClick, onOpenLightbox, index = 0, sticky = true, showOverlay = true }: { title: string, galleryId?: string, projects: any[], isLast?: boolean, onMenuClick?: () => void, onOpenLightbox?: (project: any) => void, key?: string | number, index?: number, sticky?: boolean, showOverlay?: boolean }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ["start start", "end start"]
+    offset: ["start end", "end start"]
   });
-  const overlayOpacity = useTransform(scrollYProgress, [0, 1], [0, 0.8]);
+
+  // More precise pointer events: enable only when the section is mostly in view at the top
+  const { scrollYProgress: activeProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "start start"]
+  });
+
+  const pointerEvents = useTransform(activeProgress, [0, 0.9, 1], ["none", "none", "auto"]);
+  
+  // Adjusted overlay opacity to start earlier for a smoother transition
+  const overlayOpacity = useTransform(scrollYProgress, [0.6, 0.9], [0, 1]);
 
   const { scrollYProgress: entranceProgress } = useScroll({
     target: ref,
@@ -510,6 +555,8 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
   });
 
   const padding = useTransform(entranceProgress, [0.4, 1], ["24px", "0px"]);
+  const borderRadius = useTransform(entranceProgress, [0.4, 1], ["2rem", "0rem"]);
+  const entranceOpacity = useTransform(entranceProgress, [0.1, 0.5], [0, 1]);
 
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -551,7 +598,8 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
         zIndex: 40,
         opacity: 1,
         borderTopRightRadius: '3rem',
-        borderBottomLeftRadius: isLast ? '3rem' : '0rem',
+        borderBottomLeftRadius: isLast ? '3rem' : '0',
+        borderBottomRightRadius: '0rem',
       };
     } else if (rel > 0) {
       const offset = 2 + (rel - 1) * 26;
@@ -564,6 +612,8 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
         zIndex: 30 - Math.min(rel, 10),
         opacity: rel > 3 ? 0 : 1,
         borderTopRightRadius: '0rem',
+        borderBottomLeftRadius: '0rem',
+        borderBottomRightRadius: '0rem',
       };
     } else {
       return {
@@ -574,6 +624,8 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
         zIndex: 10,
         opacity: 0,
         borderTopRightRadius: '3rem',
+        borderBottomLeftRadius: '0rem',
+        borderBottomRightRadius: '0rem',
       };
     }
   };
@@ -584,35 +636,51 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
   if (!projects || projects.length === 0) return null;
 
   return (
-    <>
-      <div className="relative w-full h-0 z-0">
-        <div ref={ref} className="absolute top-0 left-0 w-full h-screen pointer-events-none invisible" />
-      </div>
-      <motion.section 
-        initial={{ opacity: 1 }}
-        className={`h-screen w-full relative z-0 overflow-hidden bg-redd-light sticky top-0`}
-      >
-        <motion.div style={{ paddingTop: padding, paddingLeft: padding, paddingRight: padding, width: '100%', height: '100%' }}>
-          <div className={`relative w-full h-full bg-redd-light overflow-hidden`}>
+    <motion.section 
+      ref={ref} 
+      className={`${sticky ? 'sticky top-0' : 'relative'} h-screen w-full overflow-hidden bg-transparent`}
+      style={{ 
+        zIndex: index,
+        borderBottomLeftRadius: isLast ? '3rem' : '0',
+        borderBottomRightRadius: isLast ? '3rem' : '0',
+        pointerEvents: pointerEvents
+      }}
+    >
+      <motion.div style={{ 
+        paddingTop: padding, 
+        paddingLeft: padding, 
+        paddingRight: padding, 
+        paddingBottom: padding,
+        width: '100%', 
+        height: '100%', 
+        backgroundColor: '#F7F7F5',
+        borderBottomLeftRadius: isLast ? '3rem' : '0',
+        borderBottomRightRadius: isLast ? '3rem' : '0'
+      }}>
+        <div className="relative w-full h-full bg-[#F7F7F5] overflow-hidden" style={{ 
+          borderBottomLeftRadius: isLast ? '3rem' : '0',
+          borderBottomRightRadius: isLast ? '3rem' : '0'
+        }}>
+          <motion.div style={{ opacity: entranceOpacity }} className="w-full h-full">
             {/* Background Layers */}
-            <div className="absolute inset-x-0 top-0 bottom-4 md:bottom-6 flex pointer-events-none">
-              <div className="w-[65vw] h-full bg-redd-light" />
-              <div className="w-[35vw] h-full bg-redd-light" />
-            </div>
+          <div className="absolute inset-x-0 top-0 bottom-4 md:bottom-6 flex pointer-events-none">
+            <div className="w-[65vw] h-full bg-[#F7F7F5]" />
+            <div className="w-[35vw] h-full bg-[#F7F7F5]" />
+          </div>
 
-      {/* Header aligned with the first small image */}
+      {/* Header aligned with the small image */}
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8 }}
-        className="absolute top-8 md:top-12 left-[calc(65vw+2rem)] w-[26vw] flex justify-between items-center pointer-events-none z-50"
+        className="absolute top-3 md:top-6 left-[calc(65vw+2rem)] w-[26vw] flex flex-col items-center pointer-events-none z-50 gap-1"
       >
-        <h3 className="text-xl md:text-2xl font-sans uppercase tracking-tight text-redd-dark">{title}</h3>
+        <h3 className="text-xl md:text-3xl font-sans uppercase tracking-tight text-redd-dark font-medium mb-0">{title}</h3>
         {projects && projects.length > 0 && galleryId && (
           <Link 
             to={`/gallery/${galleryId}`}
-            className="pointer-events-auto border border-redd-dark px-3 py-1.5 text-[10px] md:text-xs uppercase tracking-widest hover:bg-redd-dark hover:text-white transition-colors flex items-center justify-center gap-2 bg-white whitespace-nowrap"
+            className="pointer-events-auto shadow-xl px-8 py-3.5 text-[10px] md:text-xs uppercase tracking-widest hover:bg-redd-dark hover:text-white transition-all flex items-center justify-center gap-2 bg-white whitespace-nowrap rounded-none font-bold text-redd-dark"
           >
             APRI GALLERIA <ArrowRight size={12} />
           </Link>
@@ -620,7 +688,7 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
       </motion.div>
 
       {/* Images Layer */}
-      <div className="absolute inset-x-0 top-0 bottom-4 md:bottom-6">
+      <div className="absolute inset-x-0 top-0 bottom-4 md:bottom-6 z-20">
             {(() => {
               const items = [];
               for (let rel = -1; rel <= 4; rel++) {
@@ -635,7 +703,7 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
                       initial={false}
                       animate={styles}
                       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                      className="absolute overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing group select-none"
+                      className="absolute overflow-hidden shadow-xl cursor-grab active:cursor-grabbing group select-none pointer-events-auto z-20"
                       drag="x"
                       dragConstraints={{ left: 0, right: 0 }}
                       dragElastic={0.1}
@@ -652,7 +720,7 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
                       <ParallaxImage 
                         src={proj.cover_image_url || proj.image || null} 
                         alt={proj.title} 
-                        className="w-full h-full pointer-events-none bg-transparent"
+                        className="w-full h-full pointer-events-none bg-gray-200"
                       />
                       
                       <motion.div 
@@ -715,35 +783,49 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
           </motion.div>
         </AnimatePresence>
       </div>
+    </motion.div>
+  </div>
+</motion.div>
 
-      {/* UI Overlay (Buttons, Hint, Counter) */}
-      <div className="absolute inset-x-0 bottom-0 h-[12rem] pointer-events-none z-50 flex items-end pb-12">
-        <div className="w-[calc(65vw+2rem)]" />
-        <div className="flex-1 flex flex-col justify-center items-center pr-8 md:pr-12 pointer-events-auto gap-4">
-          {/* Navigation Hint Arrow - Repositioned lower and centered */}
-          {projects && projects.length > 1 && (
-            <div 
-              className="flex flex-col items-center gap-2 opacity-80 hover:opacity-100 transition-opacity cursor-pointer" 
-              onClick={handleNext}
-            >
-              <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg text-redd-dark">
-                <ArrowRight size={20} />
-              </div>
-              <span className="text-xs uppercase tracking-widest font-bold text-redd-dark bg-white/90 px-2 py-1 rounded">Drag or Click</span>
-            </div>
-          )}
-          
-          {/* Counter - Centered horizontally under the hint */}
-          <div className="text-xl md:text-2xl font-sans tracking-tight text-redd-dark/70">
-            {projects && projects.length > 0 ? `${safeActiveIndex + 1}/${projects.length}` : '0/0'}
+  {/* UI Overlay (Buttons, Hint, Counter) */}
+  <motion.div style={{ opacity: entranceOpacity }} className="absolute inset-x-0 bottom-0 h-[12rem] pointer-events-none z-[500] flex items-end pb-12">
+    <div className="w-[calc(65vw+2rem)] pointer-events-none" />
+    <div className="flex-1 flex flex-col justify-center items-center pr-8 md:pr-12 pointer-events-none gap-4">
+      {/* Navigation Controls */}
+      <div className="flex items-center gap-6 pointer-events-auto relative z-[510]">
+        <button 
+          className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePrev();
+          }}
+          title="Previous"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        
+        <div className="flex flex-col items-center gap-0 pointer-events-none">
+          <span className="text-[10px] uppercase tracking-widest font-bold text-redd-dark/40">Navigation</span>
+          <div className="text-xl md:text-2xl font-sans tracking-tight text-redd-dark font-medium">
+            {safeActiveIndex + 1} <span className="text-redd-dark/30 mx-1">/</span> {projects.length}
           </div>
         </div>
+
+        <button 
+          className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleNext();
+          }}
+          title="Next"
+        >
+          <ChevronRight size={24} />
+        </button>
       </div>
-      {!isLast && <motion.div style={{ opacity: overlayOpacity }} className="absolute inset-x-0 top-0 bottom-4 md:bottom-6 bg-black z-50 pointer-events-none" />}
-          </div>
-        </motion.div>
-      </motion.section>
-    </>
+    </div>
+  </motion.div>
+    {showOverlay && !isLast && <motion.div style={{ opacity: overlayOpacity }} className="absolute inset-0 bg-black z-[600] pointer-events-none" />}
+  </motion.section>
   );
 };
 
@@ -794,13 +876,19 @@ const Team = () => {
   );
 };
 
-const LetsTalk = ({ data, settings }: { data: any, settings: any }) => {
+const LetsTalk = ({ data, settings, index = 0, sticky = true }: { data: any, settings: any, index?: number, sticky?: boolean }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ["start start", "end start"]
+    offset: ["start end", "end start"]
   });
-  const overlayOpacity = useTransform(scrollYProgress, [0, 1], [0, 0.8]);
+
+  const { scrollYProgress: activeProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "start start"]
+  });
+
+  const pointerEvents = useTransform(activeProgress, [0, 0.9, 1], ["none", "none", "auto"]);
 
   const { scrollYProgress: entranceProgress } = useScroll({
     target: ref,
@@ -808,6 +896,16 @@ const LetsTalk = ({ data, settings }: { data: any, settings: any }) => {
   });
 
   const padding = useTransform(entranceProgress, [0.4, 1], ["24px", "0px"]);
+
+  // New appearance transition for background
+  const bgScale = useTransform(entranceProgress, [0, 1], [1.2, 1]);
+  const bgOpacity = useTransform(entranceProgress, [0, 0.5], [0, 1]);
+  const contentY = useTransform(entranceProgress, [0, 1], [100, 0]);
+
+  // Parallax effects for the text - synchronized to prevent overlap
+  // Adjusted to be higher as requested
+  const titleY = useTransform(scrollYProgress, [0, 1], [200, -50]);
+  const contentEntranceY = useTransform(entranceProgress, [0, 1], [100, 0]);
 
   const titleSize = settings?.section3_title_size || 'text-6xl md:text-8xl lg:text-[10rem]';
   const subtitleSize = settings?.section3_subtitle_size || 'text-sm';
@@ -820,16 +918,32 @@ const LetsTalk = ({ data, settings }: { data: any, settings: any }) => {
       </div>
       <motion.section 
         initial={{ opacity: 1 }}
-        className={`relative z-0 h-screen bg-redd-light px-6 md:px-16 lg:px-24 flex flex-col justify-center sticky top-0 overflow-hidden ${data?.title_align === 'left' ? 'items-start text-left' : 'items-center text-center'}`}
+        className={`relative z-0 h-screen bg-redd-dark px-6 md:px-16 lg:px-24 flex flex-col justify-end pb-4 ${sticky ? 'sticky top-0' : 'relative'} overflow-hidden ${data?.title_align === 'left' ? 'items-start text-left' : 'items-center text-center'}`}
+        style={{ borderTopLeftRadius: '0', borderTopRightRadius: '0', zIndex: index, pointerEvents }}
       >
-        <motion.div style={{ paddingTop: padding, paddingLeft: padding, paddingRight: padding, width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
-          <div className="relative w-full h-full bg-redd-light overflow-hidden">
+        <motion.div style={{ 
+          paddingTop: padding, 
+          paddingLeft: padding, 
+          paddingRight: padding, 
+          width: '100%', 
+          height: '100%', 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          zIndex: 0, 
+          borderTopLeftRadius: '0', 
+          borderTopRightRadius: '0', 
+          overflow: 'hidden',
+          opacity: sticky ? 1 : bgOpacity,
+          scale: sticky ? 1 : bgScale
+        }}>
+          <div className="relative w-full h-full bg-redd-dark overflow-hidden" style={{ borderTopLeftRadius: '0', borderTopRightRadius: '0' }}>
             {data?.image_url && (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
                 <img 
                   src={data.image_url} 
                   alt="Let's talk background" 
-                  className="w-full h-full object-cover opacity-80"
+                  className="w-full h-full object-cover opacity-100"
                   referrerPolicy="no-referrer"
                 />
               </div>
@@ -837,60 +951,108 @@ const LetsTalk = ({ data, settings }: { data: any, settings: any }) => {
           </div>
         </motion.div>
         
-        <p className={`${subtitleSize} uppercase tracking-widest text-gray-500 mb-6 font-bold relative z-10`}>
-          {data?.subtitle || ""}
-        </p>
-        
-        <motion.h2 
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 1 }}
-          className={`${titleSize} font-serif leading-none hover:text-redd-accent transition-colors cursor-pointer max-w-6xl relative z-10`}
+        <motion.div 
+          style={{ y: sticky ? titleY : contentEntranceY, opacity: sticky ? 1 : bgOpacity }} 
+          className="relative z-10 w-full flex flex-col items-center gap-12 pb-20"
         >
-          {data?.title ? (
-            <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
-          ) : (
-            <span className="opacity-0">.</span>
-          )}
-        </motion.h2>
- 
-        {data?.description && (
-          <p className={`mt-8 ${descSize} text-gray-600 max-w-2xl relative z-10`}>
-            {data.description}
+          <p className={`${subtitleSize} uppercase tracking-widest text-white/50 mb-2 font-bold`}>
+            {data?.subtitle || ""}
           </p>
-        )}
+        
+          <h2 className={`${titleSize} font-serif leading-none text-white hover:text-redd-accent transition-colors cursor-pointer max-w-6xl`}>
+            {data?.title ? (
+              <span dangerouslySetInnerHTML={{ __html: data.title.replace(/\n/g, '<br/>') }} />
+            ) : (
+              <span className="opacity-0">.</span>
+            )}
+          </h2>
 
-        {data?.link_text && data?.link_url && (
-          <a 
-            href={data.link_url}
-            className="mt-12 inline-flex items-center gap-4 text-sm md:text-base uppercase tracking-widest border border-black px-8 py-4 hover:bg-black hover:text-white transition-colors text-black pointer-events-auto relative z-10"
-          >
-            {data.link_text} <ArrowRight size={20} />
-          </a>
-        )}
+          {data?.description && (
+            <p className={`mt-4 ${descSize} text-gray-300 max-w-2xl`}>
+              {data.description}
+            </p>
+          )}
+          
+          {data?.link_text && data?.link_url && (
+            <a 
+              href={data.link_url}
+              className="mt-6 inline-flex items-center gap-4 text-sm md:text-base uppercase tracking-widest border border-white px-10 py-5 hover:bg-white hover:text-black transition-all font-bold text-white"
+            >
+              {data.link_text} <ArrowRight size={20} />
+            </a>
+          )}
+        </motion.div>
 
-        <motion.div style={{ opacity: overlayOpacity }} className="absolute inset-0 bg-black z-50 pointer-events-none" />
       </motion.section>
     </>
   );
 };
 
 const Footer = ({ settings }: { settings: any }) => {
+  const { scrollYProgress } = useScroll();
+  
+  // Create a more organic and fluid elastic bounce effect at the end of scroll
+  // Increased initial offset and adjusted spring for more bounce
+  const footerY = useTransform(scrollYProgress, [0.8, 1], [500, 0]);
+  const springY = useSpring(footerY, { 
+    stiffness: 180, 
+    damping: 10, 
+    mass: 1.2,
+    restDelta: 0.001
+  });
+
+  // Parallax for footer content to make it feel more fluid during scroll
+  const contentParallaxY = useTransform(scrollYProgress, [0.85, 1], [150, 0]);
+  const contentSpringY = useSpring(contentParallaxY, { stiffness: 80, damping: 20 });
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1, 
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 60, scale: 0.95 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: {
+        duration: 1,
+        ease: [0.16, 1, 0.3, 1]
+      }
+    }
+  };
+
   return (
-    <footer className="w-full bg-[#161a1d] text-[#8e9299] pt-24 md:pt-32 pb-12 px-6 md:px-16 lg:px-24 flex flex-col justify-center relative z-50">
-      <div className="flex flex-col md:flex-row justify-between items-start w-full max-w-7xl mx-auto mb-16 gap-12 md:gap-0">
+    <motion.footer 
+      style={{ y: springY }}
+      className="w-full bg-[#161a1d] text-[#8e9299] pt-24 md:pt-32 pb-12 px-6 md:px-16 lg:px-24 flex flex-col justify-center relative z-50"
+    >
+      <motion.div 
+        style={{ y: contentSpringY }}
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-50px" }}
+        className="flex flex-col md:flex-row justify-between items-start w-full max-w-7xl mx-auto mb-16 gap-12 md:gap-0"
+      >
         
         {/* Left Column - Navigation */}
-        <div className="flex flex-col gap-4 text-left flex-1">
+        <motion.div variants={itemVariants} className="flex flex-col gap-4 text-left flex-1">
           <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20 mb-4">Navigation</h4>
           <Link to="/" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Home</Link>
           <Link to="/about" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">About</Link>
           <Link to="/contact" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Contact</Link>
-        </div>
+        </motion.div>
 
         {/* Center Column - Brand */}
-        <div className="flex flex-col flex-1 w-full">
+        <motion.div variants={itemVariants} className="flex flex-col flex-1 w-full">
           <div className={`w-full ${settings?.footer_title_align || 'text-center'}`}>
             <h2 className={`${settings?.footer_title_size || 'text-5xl'} font-bold tracking-tight text-white mb-2 uppercase leading-none`}>
               {settings?.footer_title || settings?.header_title || "LORENZO PACI"}
@@ -928,19 +1090,24 @@ const Footer = ({ settings }: { settings: any }) => {
               <Lock size={12} /> Admin Panel
             </Link>
           </div>
-        </div>
+        </motion.div>
 
         {/* Right Column - Work Categories */}
-        <div className="flex flex-col gap-4 text-right flex-1 w-full">
+        <motion.div variants={itemVariants} className="flex flex-col gap-4 text-right flex-1 w-full">
           <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20 mb-4">Work</h4>
           <Link to="/work?category=FILM" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Film</Link>
           <Link to="/work?category=PERSONAGGI" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Personaggi</Link>
           <Link to="/work?category=YOUTUBE" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">YouTube</Link>
-        </div>
+        </motion.div>
 
-      </div>
+      </motion.div>
 
-      <div className="w-full max-w-7xl mx-auto pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 1 }}
+        className="w-full max-w-7xl mx-auto pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4"
+      >
         <div className="text-[10px] tracking-[0.2em] uppercase opacity-40">
           {settings?.footer_copyright || `© ${new Date().getFullYear()} LORENZO PACI - ALL RIGHTS RESERVED`}
         </div>
@@ -950,12 +1117,12 @@ const Footer = ({ settings }: { settings: any }) => {
           <span className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 cursor-pointer transition-opacity">Privacy Policy</span>
           <span className="text-[10px] tracking-[0.2em] uppercase opacity-40 hover:opacity-100 cursor-pointer transition-opacity">Cookie Policy</span>
         </div>
-      </div>
-    </footer>
+      </motion.div>
+    </motion.footer>
   );
 };
 
-const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, settings }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any) => void; settings: any }) => {
+const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, settings, groupedWorks }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any) => void; settings: any; groupedWorks: Record<string, any[]> }) => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [expandedSubItem, setExpandedSubItem] = useState<string | null>(null);
 
@@ -975,23 +1142,17 @@ const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, set
       name: "Works", 
       icon: <Plus size={24} />, 
       type: "expandable",
-      subItems: [
-        { 
-          name: galleryNames['galleria 3'] || "Galleria 3", 
-          id: "galleria-3",
-          projects: works.filter(w => w.group_name === 'galleria 3')
-        },
-        { 
-          name: galleryNames['galleria 2'] || "Galleria 2", 
-          id: "galleria-2",
-          projects: works.filter(w => w.group_name === 'galleria 2')
-        },
-        { 
-          name: galleryNames['galleria 1'] || "Galleria 1", 
-          id: "galleria-1",
-          projects: works.filter(w => w.group_name === 'galleria 1')
-        }
-      ]
+      subItems: (() => {
+        const galleryOrder = ['galleria 3', 'galleria 2', 'galleria 1'];
+        const otherGalleries = Object.keys(groupedWorks).filter(g => !galleryOrder.includes(g)).sort();
+        const allGalleries = [...galleryOrder, ...otherGalleries];
+        
+        return allGalleries.map(g => ({
+          name: galleryNames[g] || g,
+          id: g.replace(/\s+/g, '-'),
+          projects: groupedWorks[g] || []
+        }));
+      })()
     },
     { name: "About", icon: <ArrowUpRight size={24} />, type: "link", path: "/about" },
     { name: "Contact", icon: <ArrowUpRight size={24} />, type: "link", path: "/contact" },
@@ -1296,12 +1457,21 @@ export default function App() {
     setIsLightboxOpen(true);
   };
 
-  const galleria1 = works.filter(w => w.group_name === 'galleria 1');
-  const galleria2 = works.filter(w => w.group_name === 'galleria 2');
-  const galleria3 = works.filter(w => w.group_name === 'galleria 3');
-
   const isSupabaseConfigured = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
   const hasNoData = works.length === 0;
+
+  // Group works by group_name dynamically
+  const groupedWorks = works.reduce((acc, work) => {
+    const group = work.group_name || 'galleria 1';
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(work);
+    return acc;
+  }, {} as Record<string, Work[]>);
+
+  // Define the order of galleries. We prioritize the standard ones, then any others.
+  const galleryOrder = ['galleria 3', 'galleria 2', 'galleria 1'];
+  const otherGalleries = Object.keys(groupedWorks).filter(g => !galleryOrder.includes(g)).sort();
+  const allGalleries = [...galleryOrder, ...otherGalleries];
 
   return (
     <motion.div 
@@ -1312,10 +1482,10 @@ export default function App() {
       className="min-h-screen text-redd-dark selection:bg-redd-accent selection:text-white bg-[#161a1d]"
     >
       <Lightbox isOpen={isLightboxOpen} onClose={() => setIsLightboxOpen(false)} project={selectedProject} />
-      <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} galleryNames={galleryNames} works={works} onOpenLightbox={handleOpenLightbox} settings={settings} />
+      <MenuOverlay isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} galleryNames={galleryNames} works={works} onOpenLightbox={handleOpenLightbox} settings={settings} groupedWorks={groupedWorks} />
       <Navbar onMenuClick={() => setIsMenuOpen(true)} settings={settings} />
       
-      <main className="relative z-10 bg-redd-light shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-b-[2rem] md:rounded-b-[3rem] min-h-screen">
+      <main className="relative z-10 bg-transparent shadow-xl min-h-screen">
         {isLoading ? (
           <div className="h-screen flex flex-col items-center justify-center p-6 text-center">
             <div className="w-12 h-12 border-4 border-redd-accent border-t-transparent rounded-full animate-spin mb-6"></div>
@@ -1362,33 +1532,50 @@ export default function App() {
         ) : (
           <>
             <Hero data={sectionsData.section1} settings={settings} />
-            <HorizontalGallery 
-              key={`galleria-3-${galleria3.length}`}
-              title={galleryNames['galleria 3'] || "Galleria 3"} 
-              galleryId="galleria-3" 
-              projects={galleria3} 
-              onMenuClick={() => setIsMenuOpen(true)} 
-              onOpenLightbox={handleOpenLightbox} 
-            />
-            <Process data={sectionsData.section2} settings={settings} />
-            <HorizontalGallery 
-              key={`galleria-2-${galleria2.length}`}
-              title={galleryNames['galleria 2'] || "Galleria 2"} 
-              galleryId="galleria-2" 
-              projects={galleria2} 
-              onMenuClick={() => setIsMenuOpen(true)} 
-              onOpenLightbox={handleOpenLightbox} 
-            />
-            <LetsTalk data={sectionsData.section3} settings={settings} />
-            <HorizontalGallery 
-              key={`galleria-1-${galleria1.length}`}
-              title={galleryNames['galleria 1'] || "Galleria 1"} 
-              galleryId="galleria-1" 
-              projects={galleria1} 
-              isLast={true} 
-              onMenuClick={() => setIsMenuOpen(true)} 
-              onOpenLightbox={handleOpenLightbox} 
-            />
+            
+            {/* 
+              As requested, we use the working "First" gallery data (Galleria 3) for all galleries.
+            */}
+            {(() => {
+              const workingWorks = groupedWorks['galleria 3'] || works;
+              const galleryTitles = [
+                galleryNames['galleria 3'] || 'YouTube',
+                galleryNames['galleria 2'] || 'Personaggi',
+                galleryNames['galleria 1'] || 'Film'
+              ];
+
+              return [0, 1, 2].map((i) => {
+                const isLast = i === 2;
+                const galleryZIndex = 100 + i * 50;
+                const title = galleryTitles[i];
+                const galleryId = `gallery-${i}`;
+
+                return (
+                  <React.Fragment key={i}>
+                    <HorizontalGallery 
+                      title={title} 
+                      galleryId={galleryId} 
+                      projects={workingWorks} 
+                      isLast={isLast}
+                      index={galleryZIndex}
+                      sticky={i !== 1}
+                      showOverlay={i !== 1}
+                      onMenuClick={() => setIsMenuOpen(true)} 
+                      onOpenLightbox={handleOpenLightbox} 
+                    />
+                    {i === 0 && (
+                      <Process data={sectionsData.section2} settings={settings} index={galleryZIndex + 20} sticky={false} />
+                    )}
+                    {i === 1 && (
+                      <div className="relative w-full" style={{ marginTop: '-100vh', zIndex: galleryZIndex - 10 }}>
+                        <LetsTalk data={sectionsData.section3} settings={settings} index={galleryZIndex - 10} sticky={true} />
+                        <div className="h-screen pointer-events-none" />
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              });
+            })()}
           </>
         )}
       </main>

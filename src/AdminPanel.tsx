@@ -112,11 +112,7 @@ export default function AdminPanel() {
   const navigate = useNavigate();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -467,91 +463,97 @@ export default function AdminPanel() {
             <h2 className="text-4xl md:text-5xl font-serif uppercase tracking-tighter mb-8">GALLERIE</h2>
             
             <div className="border border-gray-200 rounded-[2rem] p-8 md:p-12">
-            {['galleria 3', 'galleria 2', 'galleria 1'].map((galleryName) => (
-              <div key={galleryName} className="mb-16 last:mb-0">
-                <div className="flex items-center gap-4 mb-8">
-                  {renamingGallery === galleryName ? (
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="text" 
-                        value={newGalleryName} 
-                        onChange={(e) => setNewGalleryName(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1 text-xl font-bold"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveGalleryName(galleryName);
-                          if (e.key === 'Escape') setRenamingGallery(null);
-                        }}
-                      />
-                      <button onClick={() => saveGalleryName(galleryName)} className="bg-black text-white text-xs uppercase tracking-widest px-3 py-1 rounded hover:bg-gray-800">Save</button>
-                      <button onClick={() => setRenamingGallery(null)} className="text-gray-500 text-xs uppercase tracking-widest px-3 py-1 hover:text-black">Cancel</button>
-                    </div>
-                  ) : (
-                    <h3 className="text-2xl font-bold">{galleryNames[galleryName] || galleryName}</h3>
-                  )}
-                  
-                  {renamingGallery !== galleryName && (
-                    <button 
-                      onClick={() => {
-                        setRenamingGallery(galleryName);
-                        setNewGalleryName(galleryNames[galleryName] || galleryName);
-                      }}
-                      className="bg-black text-white text-xs uppercase tracking-widest px-4 py-2 rounded-full hover:bg-gray-800 transition-colors"
-                    >
-                      Rinomina Galleria
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => handleAddNew(galleryName)}
-                    className="bg-black text-white text-xs uppercase tracking-widest px-4 py-2 rounded-full hover:bg-gray-800 transition-colors flex items-center gap-2"
-                  >
-                    <Plus size={14} /> Add New Work
-                  </button>
-                  <button onClick={() => toggleCollapse(galleryName)} className="ml-2 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
-                    <span className="text-2xl leading-none">{collapsedGalleries.includes(galleryName) ? '+' : '-'}</span>
-                  </button>
-                </div>
-
-                {!collapsedGalleries.includes(galleryName) && (
-                  groupedWorks[galleryName] && groupedWorks[galleryName].length > 0 ? (
-                    <div className="w-full">
-                      <div className="grid grid-cols-12 gap-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 px-4">
-                        <div className="col-span-1"></div>
-                        <div className="col-span-2">Preview</div>
-                        <div className="col-span-3">Title</div>
-                        <div className="col-span-2">Category</div>
-                        <div className="col-span-2">Featured</div>
-                        <div className="col-span-2 text-right">Actions</div>
+            {(() => {
+              const galleryOrder = ['galleria 3', 'galleria 2', 'galleria 1'];
+              const otherGalleries = Object.keys(groupedWorks).filter(g => !galleryOrder.includes(g)).sort();
+              const allGalleries = [...galleryOrder, ...otherGalleries];
+              
+              return allGalleries.map((galleryName) => (
+                <div key={galleryName} className="mb-16 last:mb-0">
+                  <div className="flex items-center gap-4 mb-8">
+                    {renamingGallery === galleryName ? (
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="text" 
+                          value={newGalleryName} 
+                          onChange={(e) => setNewGalleryName(e.target.value)}
+                          className="border border-gray-300 rounded px-2 py-1 text-xl font-bold"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveGalleryName(galleryName);
+                            if (e.key === 'Escape') setRenamingGallery(null);
+                          }}
+                        />
+                        <button onClick={() => saveGalleryName(galleryName)} className="bg-black text-white text-xs uppercase tracking-widest px-3 py-1 rounded hover:bg-gray-800">Save</button>
+                        <button onClick={() => setRenamingGallery(null)} className="text-gray-500 text-xs uppercase tracking-widest px-3 py-1 hover:text-black">Cancel</button>
                       </div>
-                      
-                      <DndContext 
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={(e) => handleDragEnd(e, galleryName)}
+                    ) : (
+                      <h3 className="text-2xl font-bold">{galleryNames[galleryName] || galleryName}</h3>
+                    )}
+                    
+                    {renamingGallery !== galleryName && (
+                      <button 
+                        onClick={() => {
+                          setRenamingGallery(galleryName);
+                          setNewGalleryName(galleryNames[galleryName] || galleryName);
+                        }}
+                        className="bg-black text-white text-xs uppercase tracking-widest px-4 py-2 rounded-full hover:bg-gray-800 transition-colors"
                       >
-                        <SortableContext 
-                          items={groupedWorks[galleryName].map(w => w.id)}
-                          strategy={verticalListSortingStrategy}
+                        Rinomina Galleria
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => handleAddNew(galleryName)}
+                      className="bg-black text-white text-xs uppercase tracking-widest px-4 py-2 rounded-full hover:bg-gray-800 transition-colors flex items-center gap-2"
+                    >
+                      <Plus size={14} /> Add New Work
+                    </button>
+                    <button onClick={() => toggleCollapse(galleryName)} className="ml-2 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                      <span className="text-2xl leading-none">{collapsedGalleries.includes(galleryName) ? '+' : '-'}</span>
+                    </button>
+                  </div>
+
+                  {!collapsedGalleries.includes(galleryName) && (
+                    groupedWorks[galleryName] && groupedWorks[galleryName].length > 0 ? (
+                      <div className="w-full">
+                        <div className="grid grid-cols-12 gap-4 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 px-4">
+                          <div className="col-span-1"></div>
+                          <div className="col-span-2">Preview</div>
+                          <div className="col-span-3">Title</div>
+                          <div className="col-span-2">Category</div>
+                          <div className="col-span-2">Featured</div>
+                          <div className="col-span-2 text-right">Actions</div>
+                        </div>
+                        
+                        <DndContext 
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={(e) => handleDragEnd(e, galleryName)}
                         >
-                          <div className="flex flex-col gap-2">
-                            {groupedWorks[galleryName].map((work) => (
-                              <SortableWorkRow 
-                                key={work.id}
-                                work={work}
-                                onEdit={() => handleEdit(work)} 
-                                onDelete={() => handleDelete(work.id)}
-                              />
-                            ))}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-400 italic px-4">Nessun lavoro in questa galleria.</div>
-                  )
-                )}
-              </div>
-            ))}
+                          <SortableContext 
+                            items={groupedWorks[galleryName].map(w => w.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="flex flex-col gap-2">
+                              {groupedWorks[galleryName].map((work) => (
+                                <SortableWorkRow 
+                                  key={work.id}
+                                  work={work}
+                                  onEdit={() => handleEdit(work)} 
+                                  onDelete={() => handleDelete(work.id)}
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic px-4">Nessun lavoro in questa galleria.</div>
+                    )
+                  )}
+                </div>
+              ));
+            })()}
           </div>
         </div>
         )}
@@ -849,16 +851,6 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Altezza Logo (px)</label>
-                <input 
-                  type="number" 
-                  value={settings.logo_height || '40'} 
-                  onChange={(e) => handleChange('logo_height', e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
-                  placeholder="40"
-                />
-              </div>
-              <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Sottotitolo</label>
                 <select 
                   value={settings.header_subtitle_align || 'text-left'} 
@@ -884,6 +876,31 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
         </div>
       </div>
 
+      {/* Hero Overrides */}
+      <div className="mb-12 border border-gray-200 rounded-[2rem] p-8 md:p-12">
+        <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">Hero Overrides</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titolo Hero (Sostituisce default)</label>
+            <input 
+              type="text" 
+              value={settings.hero_title || ''} 
+              onChange={(e) => handleChange('hero_title', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Sottotitolo Hero (Sostituisce default)</label>
+            <input 
+              type="text" 
+              value={settings.hero_subtitle || ''} 
+              onChange={(e) => handleChange('hero_subtitle', e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+        </div>
+      </div>
+
       {renderSectionFields('section1', 'Sezione 1 (Hero Background)')}
       {renderSectionFields('section2', 'Sezione 2 (Processo / Filosofia)', true)}
       
@@ -893,16 +910,6 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
         {renderSectionFields('section3', '', false, true)}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t border-gray-100">
-          <div className="md:col-span-3 mb-4">
-            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Link del Titolo (es. YouTube)</label>
-            <input 
-              type="text" 
-              value={settings.section3_title_link || ''} 
-              onChange={(e) => handleChange('section3_title_link', e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors"
-              placeholder="https://youtube.com/..."
-            />
-          </div>
           <div>
             <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Dimensione Titolo</label>
             <select 
@@ -1151,7 +1158,7 @@ function SortableWorkRow({ work, onEdit, onDelete }: { key?: React.Key, work: Wo
   );
 }
 
-function SortableImageItem({ img, onRemove, onUpdate }: { key?: React.Key, img: any, onRemove: () => void, onUpdate: (data: any) => void }) {
+function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key, img: any, index: number, onRemove: (i: number) => void, onUpdate: (i: number, data: any) => void }) {
   const {
     attributes,
     listeners,
@@ -1159,7 +1166,7 @@ function SortableImageItem({ img, onRemove, onUpdate }: { key?: React.Key, img: 
     transform,
     transition,
     isDragging
-  } = useSortable({ id: String(img.id) });
+  } = useSortable({ id: img.id || `temp-${index}` });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -1183,7 +1190,7 @@ function SortableImageItem({ img, onRemove, onUpdate }: { key?: React.Key, img: 
           <GripVertical size={18} />
         </button>
         {img.image_url ? (
-          <img src={img.image_url} alt="Gallery item" className="w-16 h-16 object-cover rounded-lg" />
+          <img src={img.image_url} alt={`Gallery ${index}`} className="w-16 h-16 object-cover rounded-lg" />
         ) : (
           <div className="w-16 h-16 bg-gray-100 rounded-lg" />
         )}
@@ -1194,7 +1201,7 @@ function SortableImageItem({ img, onRemove, onUpdate }: { key?: React.Key, img: 
           className="flex-1 bg-transparent border-none focus:outline-none text-sm text-gray-500 truncate"
         />
         <button 
-          onClick={onRemove}
+          onClick={() => onRemove(index)}
           className="w-8 h-8 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-100 hover:text-red-600 hover:border-red-200 transition-colors"
         >
           <Trash2 size={14} />
@@ -1205,21 +1212,21 @@ function SortableImageItem({ img, onRemove, onUpdate }: { key?: React.Key, img: 
           type="text" 
           placeholder="Title (optional)" 
           value={img.title || ''} 
-          onChange={(e) => onUpdate({ title: e.target.value })}
+          onChange={(e) => onUpdate(index, { title: e.target.value })}
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
         />
         <input 
           type="text" 
           placeholder="Link URL (optional)" 
           value={img.link || ''} 
-          onChange={(e) => onUpdate({ link: e.target.value })}
+          onChange={(e) => onUpdate(index, { link: e.target.value })}
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors"
         />
       </div>
       <textarea 
         placeholder="Description (optional)" 
         value={img.description || ''} 
-        onChange={(e) => onUpdate({ description: e.target.value })}
+        onChange={(e) => onUpdate(index, { description: e.target.value })}
         rows={2}
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors resize-none"
       />
@@ -1294,11 +1301,9 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
 
   const handleAddImage = () => {
     if (!newImageUrl.trim()) return;
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setGalleryImages(prev => [
       ...prev, 
       { 
-        id: tempId,
         image_url: newImageUrl, 
         title: newImageTitle,
         description: newImageDescription,
@@ -1312,28 +1317,22 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
     setNewImageLink('');
   };
 
-  const handleRemoveImage = (id: string) => {
-    setGalleryImages(prev => prev.filter(img => String(img.id) !== id));
+  const handleRemoveImage = (index: number) => {
+    setGalleryImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleImageDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = galleryImages.findIndex(img => String(img.id) === String(active.id));
-    const newIndex = galleryImages.findIndex(img => String(img.id) === String(over.id));
+    const oldIndex = galleryImages.findIndex(img => (img.id || `temp-${galleryImages.indexOf(img)}`) === active.id);
+    const newIndex = galleryImages.findIndex(img => (img.id || `temp-${galleryImages.indexOf(img)}`) === over.id);
 
-    if (oldIndex !== -1 && newIndex !== -1) {
-      setGalleryImages(arrayMove(galleryImages, oldIndex, newIndex));
-    }
+    setGalleryImages(arrayMove(galleryImages, oldIndex, newIndex));
   };
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -1351,54 +1350,35 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
       let workId = work?.id;
       
       if (workId) {
-        const { id, created_at, ...updateData } = formData;
-        const { error } = await supabase.from('works').update(updateData).eq('id', workId);
+        const { error } = await supabase.from('works').update(formData).eq('id', workId);
         if (error) throw error;
       } else {
         const { data, error } = await supabase.from('works').insert([formData]).select().single();
         if (error) throw error;
         workId = data.id;
       }
+      setAdminMessage({ text: 'Lavoro salvato con successo!', type: 'success' });
 
       // Handle gallery images
       if (workId) {
-        console.log('Starting gallery save for work:', workId);
-        
-        // Delete existing images first
-        const { error: deleteError } = await supabase
-          .from('work_images')
-          .delete()
-          .eq('work_id', workId);
-          
-        if (deleteError) {
-          console.error('Error deleting old gallery images:', deleteError);
-        }
+        // Delete existing images
+        await supabase.from('work_images').delete().eq('work_id', workId);
         
         // Insert new images
         if (galleryImages.length > 0) {
           const imagesToInsert = galleryImages.map((img, index) => ({
             work_id: workId,
             image_url: img.image_url,
-            title: img.title || null,
-            description: img.description || null,
-            link: img.link || null,
-            display_order: index // Assicurati che il database abbia questa colonna
+            title: img.title,
+            description: img.description,
+            link: img.link,
+            display_order: index
           }));
-          
-          console.log('Inserting gallery images:', imagesToInsert);
-          
-          const { error: imgError } = await supabase
-            .from('work_images')
-            .insert(imagesToInsert);
-            
-          if (imgError) {
-            console.error('Error inserting gallery images:', imgError);
-            throw new Error('Errore salvataggio galleria: ' + imgError.message);
-          }
+          const { error: imgError } = await supabase.from('work_images').insert(imagesToInsert);
+          if (imgError) throw imgError;
         }
       }
 
-      setAdminMessage({ text: 'Lavoro salvato con successo!', type: 'success' });
       onClose();
     } catch (err: any) {
       setAdminMessage({ text: 'Errore durante il salvataggio: ' + err.message, type: 'error' });
@@ -1464,6 +1444,18 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Galleria (Group)</label>
+                <select name="group_name" value={formData.group_name || 'galleria 1'} onChange={handleChange} className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors appearance-none bg-white">
+                  <option value="galleria 3">Galleria 3</option>
+                  <option value="galleria 2">Galleria 2</option>
+                  <option value="galleria 1">Galleria 1</option>
+                  {Object.keys(formData).includes('group_name') && !['galleria 1', 'galleria 2', 'galleria 3'].includes(formData.group_name || '') && (
+                    <option value={formData.group_name}>{formData.group_name}</option>
+                  )}
+                </select>
+              </div>
+
               <label className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="checkbox" name="is_featured" checked={formData.is_featured || false} onChange={handleChange} className="w-4 h-4 accent-black" />
                 <span className="text-sm font-bold uppercase tracking-widest">Metti in evidenza nella home page</span>
@@ -1503,19 +1495,20 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
                     onDragEnd={handleImageDragEnd}
                   >
                     <SortableContext 
-                      items={galleryImages.map(img => String(img.id))}
+                      items={galleryImages.map((img, i) => img.id || `temp-${i}`)}
                       strategy={verticalListSortingStrategy}
                     >
                       <div className="flex flex-col gap-4">
-                        {galleryImages.map((img) => (
+                        {galleryImages.map((img, index) => (
                           <SortableImageItem 
-                            key={String(img.id)}
+                            key={img.id || `temp-${index}`}
                             img={img}
-                            onRemove={() => handleRemoveImage(String(img.id))}
-                            onUpdate={(data) => {
-                              setGalleryImages(prev => prev.map(item => 
-                                item.id === img.id ? { ...item, ...data } : item
-                              ));
+                            index={index}
+                            onRemove={handleRemoveImage}
+                            onUpdate={(i, data) => {
+                              const newImages = [...galleryImages];
+                              newImages[i] = { ...newImages[i], ...data };
+                              setGalleryImages(newImages);
                             }}
                           />
                         ))}
