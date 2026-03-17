@@ -29,6 +29,8 @@ export type Work = {
   group_name: string; // e.g., 'galleria 3', 'sezione 1'
   seo_alt_text?: string;
   display_order: number;
+  fit_large?: 'height' | 'width';
+  fit_small?: 'height' | 'width';
   created_at: string;
 };
 
@@ -43,5 +45,7 @@ export type WorkImage = {
   link?: string;
   seo_alt_text?: string;
   display_order: number;
+  fit_large?: 'height' | 'width';
+  fit_small?: 'height' | 'width';
   created_at: string;
 };

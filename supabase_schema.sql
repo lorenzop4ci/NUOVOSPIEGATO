@@ -7,6 +7,8 @@ CREATE TABLE works (
   category TEXT DEFAULT 'PROJECTS',
   is_featured BOOLEAN DEFAULT false,
   cover_image_url TEXT,
+  cover_media_type TEXT DEFAULT 'image', -- 'image', 'video', 'youtube'
+  cover_video_url TEXT,
   cover_image_caption TEXT,
   link_label TEXT,
   link_url TEXT,
@@ -15,6 +17,8 @@ CREATE TABLE works (
   group_name TEXT NOT NULL, -- es: 'galleria 3', 'sezione 1'
   seo_alt_text TEXT,
   display_order INTEGER DEFAULT 0,
+  fit_large TEXT DEFAULT 'height', -- 'height', 'width'
+  fit_small TEXT DEFAULT 'width', -- 'height', 'width'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -23,11 +27,15 @@ CREATE TABLE work_images (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   work_id UUID REFERENCES works(id) ON DELETE CASCADE,
   image_url TEXT NOT NULL,
+  media_type TEXT DEFAULT 'image', -- 'image', 'video', 'youtube'
+  video_url TEXT,
   title TEXT,
   description TEXT,
   link TEXT,
   seo_alt_text TEXT,
   display_order INTEGER DEFAULT 0,
+  fit_large TEXT DEFAULT 'height', -- 'height', 'width'
+  fit_small TEXT DEFAULT 'width', -- 'height', 'width'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

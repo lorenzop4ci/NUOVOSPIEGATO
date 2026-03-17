@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, X, ChevronLeft, ChevronRight, ArrowUpRight, Plus, Play } from 'lucide-react';
+import { ArrowLeft, X, ChevronLeft, ChevronRight, ArrowUpRight, Plus, Play, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 const getYouTubeEmbedUrl = (url: string) => {
@@ -19,6 +19,7 @@ export default function FullGallery() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [isMuted, setIsMuted] = useState(true);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [direction, setDirection] = useState(0);
   const [projectDirection, setProjectDirection] = useState(0);
@@ -326,9 +327,9 @@ export default function FullGallery() {
                     <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-4 font-bold">PROJECTS</div>
                     <h2 className="text-5xl md:text-7xl font-sans tracking-tight mb-12 uppercase">{selectedProject.title}</h2>
                     
-                    <div className="text-lg text-gray-600 space-y-6 leading-relaxed">
+                    <div className="text-lg text-gray-600 space-y-1 leading-relaxed">
                       {(selectedProject.description_top || selectedProject.description)?.split('\n').map((paragraph: string, i: number) => (
-                        <p key={i} className="min-h-[1rem]">{paragraph}</p>
+                        <p key={i} className={paragraph.trim() === '' ? "h-2" : ""}>{paragraph}</p>
                       ))}
                     </div>
 
@@ -348,25 +349,37 @@ export default function FullGallery() {
                     <div className="sticky top-24">
                       <div className="overflow-hidden rounded-3xl shadow-2xl group bg-black/5">
                         {selectedProject.cover_media_type === 'youtube' ? (
-                          <div className="w-full aspect-video lg:aspect-auto lg:h-[80vh] rounded-3xl overflow-hidden shadow-2xl bg-black">
+                          <div className="w-full aspect-video lg:aspect-auto lg:h-[80vh] rounded-3xl overflow-hidden shadow-2xl bg-black relative">
                             <iframe 
-                              src={`${getYouTubeEmbedUrl(selectedProject.cover_video_url)}?autoplay=1&mute=1&loop=1&playlist=${selectedProject.cover_video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
-                              className="w-full h-full object-cover"
-                              style={{ minWidth: '142.22vh' }}
+                              src={`${getYouTubeEmbedUrl(selectedProject.cover_video_url)}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${selectedProject.cover_video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
+                              className={`absolute top-0 left-1/2 -translate-x-1/2 ${selectedProject.fit_large === 'width' ? 'w-full h-auto aspect-video' : 'h-full aspect-video'}`}
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                               allowFullScreen
                             ></iframe>
+                            <button 
+                              onClick={() => setIsMuted(!isMuted)}
+                              className="absolute bottom-6 right-6 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10"
+                            >
+                              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                            </button>
                           </div>
                         ) : selectedProject.cover_media_type === 'video' ? (
-                          <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center lg:h-[80vh]">
+                          <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center lg:h-[80vh] relative">
                             <video 
                               src={selectedProject.cover_video_url} 
                               controls 
                               autoPlay 
-                              muted
+                              muted={isMuted}
                               loop
-                              className="w-full h-full object-cover"
+                              className={`absolute top-0 left-1/2 -translate-x-1/2 ${selectedProject.fit_large === 'width' ? 'w-full h-auto object-contain' : 'h-full object-cover'}`}
+                              style={selectedProject.fit_large === 'width' ? {} : { minWidth: '160vh' }}
                             ></video>
+                            <button 
+                              onClick={() => setIsMuted(!isMuted)}
+                              className="absolute bottom-6 right-6 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10"
+                            >
+                              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                            </button>
                           </div>
                         ) : (selectedProject.cover_image_url || selectedProject.image) ? (
                           <img 
@@ -446,9 +459,9 @@ export default function FullGallery() {
                 {selectedProject.description_bottom && (
                   <div className="border-t border-gray-200 pt-16">
                     <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-8 font-bold">ADDITIONAL DETAILS</div>
-                    <div className="text-lg text-gray-600 space-y-6 leading-relaxed max-w-4xl">
+                    <div className="text-lg text-gray-600 space-y-1 leading-relaxed max-w-4xl">
                       {selectedProject.description_bottom.split('\n').map((paragraph: string, i: number) => (
-                        <p key={i} className="min-h-[1rem]">{paragraph}</p>
+                        <p key={i} className={paragraph.trim() === '' ? "h-2" : ""}>{paragraph}</p>
                       ))}
                     </div>
                   </div>
@@ -492,25 +505,37 @@ export default function FullGallery() {
             <div className="min-h-screen flex flex-col items-center p-4 py-24 md:p-12 md:py-24">
               <div className="relative w-full max-w-6xl flex flex-col items-center my-auto" onClick={(e) => e.stopPropagation()}>
                 {galleryImages[selectedImageIndex].media_type === 'youtube' ? (
-                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black">
+                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black relative">
                     <iframe 
-                      src={`${getYouTubeEmbedUrl(galleryImages[selectedImageIndex].video_url)}?autoplay=1&mute=1&loop=1&playlist=${galleryImages[selectedImageIndex].video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
-                      className="w-full h-full object-cover"
-                      style={{ minWidth: '160vh' }}
+                      src={`${getYouTubeEmbedUrl(galleryImages[selectedImageIndex].video_url)}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${galleryImages[selectedImageIndex].video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
+                      className={`absolute top-0 left-1/2 -translate-x-1/2 ${galleryImages[selectedImageIndex].fit_small === 'width' ? 'w-full h-auto aspect-video' : 'h-full aspect-video'}`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                       allowFullScreen
                     ></iframe>
+                    <button 
+                      onClick={() => setIsMuted(!isMuted)}
+                      className="absolute bottom-6 right-6 w-10 h-10 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+                    >
+                      {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                    </button>
                   </div>
                 ) : galleryImages[selectedImageIndex].media_type === 'video' ? (
-                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center relative">
                     <video 
                       src={galleryImages[selectedImageIndex].video_url} 
                       controls 
                       autoPlay 
-                      muted
+                      muted={isMuted}
                       loop
-                      className="w-full h-full object-cover"
+                      className={`absolute top-0 left-1/2 -translate-x-1/2 ${galleryImages[selectedImageIndex].fit_small === 'width' ? 'w-full h-auto object-contain' : 'h-full object-cover'}`}
+                      style={galleryImages[selectedImageIndex].fit_small === 'width' ? {} : { minWidth: '160vh' }}
                     ></video>
+                    <button 
+                      onClick={() => setIsMuted(!isMuted)}
+                      className="absolute bottom-6 right-6 w-10 h-10 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+                    >
+                      {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                    </button>
                   </div>
                 ) : galleryImages[selectedImageIndex].url ? (
                   <motion.img 

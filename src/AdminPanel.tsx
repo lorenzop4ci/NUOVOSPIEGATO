@@ -639,16 +639,60 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
   if (loading) return <div>Caricamento sezioni...</div>;
 
   const renderSectionFields = (sectionId: string, sectionName: string, hasSteps: boolean = false, hideContainer: boolean = false) => {
+    const mediaType = settings[`${sectionId}_media_type`] || 'image';
+    
     const content = (
       <>
         {sectionName && <h3 className="text-3xl font-serif uppercase tracking-tighter mb-8">{sectionName}</h3>}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <ImageField 
-            label="Immagine di Sfondo" 
-            value={settings[`${sectionId}_image_url`] || ''} 
-            onChange={(url) => handleChange(`${sectionId}_image_url`, url)} 
-          />
+          <div className="space-y-4">
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Tipo Media Sfondo</label>
+            <div className="flex gap-4">
+              {['image', 'video', 'youtube'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => handleChange(`${sectionId}_media_type`, type)}
+                  className={`flex-1 py-3 rounded-xl border font-bold text-xs uppercase tracking-widest transition-all ${
+                    mediaType === type 
+                      ? 'bg-black text-white border-black' 
+                      : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {type === 'image' ? 'Immagine' : type === 'video' ? 'Video File' : 'YouTube'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {mediaType === 'image' ? (
+            <ImageField 
+              label="Immagine di Sfondo" 
+              value={settings[`${sectionId}_image_url`] || ''} 
+              onChange={(url) => handleChange(`${sectionId}_image_url`, url)} 
+            />
+          ) : (
+            <ImageField 
+              label={mediaType === 'video' ? "Video di Sfondo (MP4)" : "Link YouTube Sfondo"} 
+              value={settings[`${sectionId}_video_url`] || ''} 
+              onChange={(url) => handleChange(`${sectionId}_video_url`, url)}
+              type={mediaType as any}
+            />
+          )}
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Adattamento Media</label>
+            <select 
+              value={settings[`${sectionId}_fit`] || 'cover'} 
+              onChange={(e) => handleChange(`${sectionId}_fit`, e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors bg-white"
+            >
+              <option value="cover">Copri (Riempie tutto)</option>
+              <option value="width">Adatta alla Larghezza</option>
+              <option value="height">Adatta all'Altezza</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Allineamento Titolo</label>
             <select 
@@ -1126,6 +1170,16 @@ function SectionsEditor({ setAdminMessage }: { setAdminMessage: (msg: { text: st
           </div>
         </div>
       </div>
+
+      <div className="mt-12 flex justify-center pb-12">
+        <button 
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-black text-white px-12 py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-gray-800 transition-colors shadow-2xl disabled:opacity-50"
+        >
+          {saving ? 'Salvataggio...' : 'Salva Tutte le Sezioni'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1285,6 +1339,31 @@ function SortableImageItem({ img, index, onRemove, onUpdate }: { key?: React.Key
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Adattamento Grande</label>
+          <select 
+            value={img.fit_large || 'height'} 
+            onChange={(e) => onUpdate(index, { fit_large: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors bg-white"
+          >
+            <option value="height">Altezza</option>
+            <option value="width">Larghezza</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Adattamento Piccola</label>
+          <select 
+            value={img.fit_small || 'width'} 
+            onChange={(e) => onUpdate(index, { fit_small: e.target.value })}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors bg-white"
+          >
+            <option value="height">Altezza</option>
+            <option value="width">Larghezza</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
         <input 
           type="text" 
           placeholder="SEO Alt Text (optional)" 
@@ -1352,13 +1431,15 @@ function WorkRow({ title, category, image, onEdit, onDelete }: { key?: React.Key
 function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClose: () => void, setAdminMessage: (msg: { text: string, type: 'success' | 'error' } | null) => void }) {
   const [formData, setFormData] = useState<Partial<Work>>(work || {});
   const [saving, setSaving] = useState(false);
-  const [galleryImages, setGalleryImages] = useState<{ id?: string, image_url: string, media_type?: 'image' | 'video' | 'youtube', video_url?: string, title?: string, description?: string, link?: string, display_order: number }[]>([]);
+  const [galleryImages, setGalleryImages] = useState<{ id?: string, image_url: string, media_type?: 'image' | 'video' | 'youtube', video_url?: string, title?: string, description?: string, link?: string, fit_large?: 'height' | 'width', fit_small?: 'height' | 'width', display_order: number }[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newMediaType, setNewMediaType] = useState<'image' | 'video' | 'youtube'>('image');
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newImageTitle, setNewImageTitle] = useState('');
   const [newImageDescription, setNewImageDescription] = useState('');
   const [newImageLink, setNewImageLink] = useState('');
+  const [newFitLarge, setNewFitLarge] = useState<'height' | 'width'>('height');
+  const [newFitSmall, setNewFitSmall] = useState<'height' | 'width'>('width');
 
   useEffect(() => {
     if (work?.id) {
@@ -1400,6 +1481,8 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
         title: newImageTitle,
         description: newImageDescription,
         link: newImageLink,
+        fit_large: newFitLarge,
+        fit_small: newFitSmall,
         display_order: prev.length 
       }
     ]);
@@ -1409,6 +1492,8 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
     setNewImageTitle('');
     setNewImageDescription('');
     setNewImageLink('');
+    setNewFitLarge('height');
+    setNewFitSmall('width');
   };
 
   const handleRemoveImage = (index: number) => {
@@ -1469,6 +1554,8 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
             description: img.description,
             link: img.link,
             seo_alt_text: img.seo_alt_text,
+            fit_large: img.fit_large || 'height',
+            fit_small: img.fit_small || 'width',
             display_order: index
           }));
           const { error: imgError } = await supabase.from('work_images').insert(imagesToInsert);
@@ -1585,6 +1672,33 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
                 <input type="text" name="link_url" value={formData.link_url || ''} onChange={handleChange} placeholder="Link URL (Optional)" className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors" />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Adattamento Galleria Grande / Lightbox Nero</label>
+                  <select 
+                    name="fit_large" 
+                    value={formData.fit_large || 'height'} 
+                    onChange={handleChange} 
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors appearance-none bg-white"
+                  >
+                    <option value="height">Adatta per Altezza (Verticale)</option>
+                    <option value="width">Adatta per Larghezza (Orizzontale)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Adattamento Galleria Piccola / Lightbox Bianco</label>
+                  <select 
+                    name="fit_small" 
+                    value={formData.fit_small || 'width'} 
+                    onChange={handleChange} 
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black transition-colors appearance-none bg-white"
+                  >
+                    <option value="height">Adatta per Altezza (Verticale)</option>
+                    <option value="width">Adatta per Larghezza (Orizzontale)</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Gallery Items</label>
@@ -1657,6 +1771,31 @@ function EditWork({ work, onClose, setAdminMessage }: { work: Work | null, onClo
                         />
                       </div>
                     )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Adattamento Grande</label>
+                        <select 
+                          value={newFitLarge} 
+                          onChange={(e) => setNewFitLarge(e.target.value as any)}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors bg-white"
+                        >
+                          <option value="height">Altezza</option>
+                          <option value="width">Larghezza</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Adattamento Piccola</label>
+                        <select 
+                          value={newFitSmall} 
+                          onChange={(e) => setNewFitSmall(e.target.value as any)}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors bg-white"
+                        >
+                          <option value="height">Altezza</option>
+                          <option value="width">Larghezza</option>
+                        </select>
+                      </div>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <input 

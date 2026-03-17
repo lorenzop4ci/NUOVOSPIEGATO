@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
-import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail, Lock, Play } from "lucide-react";
+import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail, Lock, Play, Volume2, VolumeX } from "lucide-react";
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import { supabase, Work } from './lib/supabase';
@@ -11,7 +11,7 @@ const getYouTubeEmbedUrl = (url: string) => {
   return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
 };
 
-const ParallaxImage = React.memo(({ src, alt, className }: { src: string, alt?: string, className?: string }) => {
+const ParallaxImage = React.memo(({ src, alt, className, fit = 'cover' }: { src: string | null, alt?: string, className?: string, fit?: 'cover' | 'contain' }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -27,7 +27,7 @@ const ParallaxImage = React.memo(({ src, alt, className }: { src: string, alt?: 
             <img 
               src={src} 
               alt={alt} 
-              className="w-full h-full object-cover"
+              className={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
               referrerPolicy="no-referrer"
               draggable="false"
               loading="eager"
@@ -110,15 +110,36 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
     <section ref={ref} className="relative z-0 h-[100vh] w-full bg-redd-dark">
       <div className="absolute top-0 left-0 h-full w-full overflow-hidden -z-10">
         <div className="sticky top-0 h-screen w-full">
-          {data?.image_url && (
+          {data?.media_type === 'youtube' ? (
+            <div className="w-full h-full bg-black overflow-hidden relative">
+              <iframe 
+                src={`${getYouTubeEmbedUrl(data.video_url)}?autoplay=1&mute=1&loop=1&playlist=${data.video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`}
+                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'h-full scale-[1.1]'}`}
+                style={data?.fit === 'width' || data?.fit === 'height' ? { aspectRatio: '16/9' } : { minWidth: '177.77vh' }}
+                allow="autoplay; encrypted-media"
+              ></iframe>
+            </div>
+          ) : data?.media_type === 'video' ? (
+            <div className="w-full h-full bg-black overflow-hidden relative">
+              <video 
+                src={data.video_url} 
+                autoPlay 
+                muted 
+                loop 
+                playsInline
+                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'w-full h-full object-cover'}`}
+                style={data?.fit === 'width' || data?.fit === 'height' ? {} : { minWidth: '177.77vh' }}
+              ></video>
+            </div>
+          ) : data?.image_url ? (
             <motion.img 
               style={{ scale, transformOrigin: "bottom center" }}
               src={data.image_url} 
               alt="Hero background" 
-              className="w-full h-full object-cover opacity-100"
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'w-full h-full object-cover'} opacity-100`}
               referrerPolicy="no-referrer"
             />
-          )}
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         </div>
       </div>
@@ -224,17 +245,38 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
           style={{ overflow: 'hidden', borderTopLeftRadius: '3rem', borderTopRightRadius: '3rem' }}
           className="relative h-full w-full bg-redd-dark text-white flex flex-col md:flex-row"
         >
-        {/* Background Image */}
+        {/* Background Image/Video */}
         <div className="absolute inset-0 w-full h-full overflow-hidden">
-          {data?.image_url && (
+          {data?.media_type === 'youtube' ? (
+            <div className="w-full h-full bg-black overflow-hidden relative">
+              <iframe 
+                src={`${getYouTubeEmbedUrl(data.video_url)}?autoplay=1&mute=1&loop=1&playlist=${data.video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`}
+                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'object-cover'} opacity-80`}
+                style={data?.fit === 'width' || data?.fit === 'height' ? { aspectRatio: '16/9' } : { minWidth: '177.77vh' }}
+                allow="autoplay; encrypted-media"
+              ></iframe>
+            </div>
+          ) : data?.media_type === 'video' ? (
+            <div className="w-full h-full bg-black overflow-hidden relative">
+              <video 
+                src={data.video_url} 
+                autoPlay 
+                muted 
+                loop 
+                playsInline
+                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'object-cover'} opacity-80`}
+                style={data?.fit === 'width' || data?.fit === 'height' ? {} : { minWidth: '177.77vh' }}
+              ></video>
+            </div>
+          ) : data?.image_url ? (
             <motion.img 
-              style={{ y, height: '130%', top: '-15%', width: '100%', position: 'absolute', objectFit: 'cover' }}
+              style={{ y, height: data?.fit === 'width' || data?.fit === 'height' ? 'auto' : '130%', top: data?.fit === 'width' || data?.fit === 'height' ? '50%' : '-15%', left: '50%', x: '-50%', y: data?.fit === 'width' || data?.fit === 'height' ? '-50%' : y, width: data?.fit === 'width' ? '100%' : data?.fit === 'height' ? 'auto' : '100%', height: data?.fit === 'height' ? '100%' : data?.fit === 'width' ? 'auto' : '130%', position: 'absolute', objectFit: data?.fit === 'width' || data?.fit === 'height' ? 'contain' : 'cover' }}
               src={data.image_url} 
               alt="Process background" 
               className="opacity-80"
               referrerPolicy="no-referrer"
             />
-          )}
+          ) : null}
         </div>
 
         {/* Large Absolute Text */}
@@ -323,6 +365,8 @@ const Lightbox = ({ isOpen, onClose, project, allProjects = [] }: { isOpen: bool
   const [currentProject, setCurrentProject] = useState<any>(project);
   const [direction, setDirection] = useState(0);
   const [projectDirection, setProjectDirection] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+
   const lightboxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -486,9 +530,9 @@ const Lightbox = ({ isOpen, onClose, project, allProjects = [] }: { isOpen: bool
                     <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-4 font-bold">PROJECTS</div>
                     <h2 className="text-5xl md:text-7xl font-sans tracking-tight mb-12 uppercase">{currentProject.title}</h2>
                     
-                    <div className="text-lg text-gray-600 space-y-6 leading-relaxed">
+                    <div className="text-lg text-gray-600 space-y-1 leading-relaxed">
                       {(currentProject.description_top || currentProject.description)?.split('\n').map((paragraph: string, i: number) => (
-                        <p key={i} className="min-h-[1rem]">{paragraph}</p>
+                        <p key={i} className={paragraph.trim() === '' ? "h-2" : ""}>{paragraph}</p>
                       ))}
                     </div>
 
@@ -509,25 +553,37 @@ const Lightbox = ({ isOpen, onClose, project, allProjects = [] }: { isOpen: bool
                     <div className="sticky top-24">
                       <div className="overflow-hidden rounded-3xl shadow-2xl group bg-black/5">
                         {currentProject.cover_media_type === 'youtube' ? (
-                          <div className="w-full aspect-video lg:aspect-auto lg:h-[80vh] rounded-3xl overflow-hidden shadow-2xl bg-black">
+                          <div className="w-full aspect-video lg:aspect-auto lg:h-[80vh] rounded-3xl overflow-hidden shadow-2xl bg-black relative">
                             <iframe 
-                              src={`${getYouTubeEmbedUrl(currentProject.cover_video_url)}?autoplay=1&mute=1&loop=1&playlist=${currentProject.cover_video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
-                              className="w-full h-full object-cover"
-                              style={{ minWidth: '142.22vh' }}
+                              src={`${getYouTubeEmbedUrl(currentProject.cover_video_url)}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${currentProject.cover_video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
+                              className={`absolute top-0 left-1/2 -translate-x-1/2 ${currentProject.fit_large === 'width' ? 'w-full h-auto aspect-video' : 'h-full aspect-video'}`}
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                               allowFullScreen
                             ></iframe>
+                            <button 
+                              onClick={() => setIsMuted(!isMuted)}
+                              className="absolute bottom-6 right-6 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10"
+                            >
+                              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                            </button>
                           </div>
                         ) : currentProject.cover_media_type === 'video' ? (
-                          <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center lg:h-[80vh]">
+                          <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center lg:h-[80vh] relative">
                             <video 
                               src={currentProject.cover_video_url} 
                               controls 
                               autoPlay 
-                              muted
+                              muted={isMuted}
                               loop
-                              className="w-full h-full object-cover"
+                              className={`absolute top-0 left-1/2 -translate-x-1/2 ${currentProject.fit_large === 'width' ? 'w-full h-auto object-contain' : 'h-full object-cover'}`}
+                              style={currentProject.fit_large === 'width' ? {} : { minWidth: '142.22vh' }}
                             ></video>
+                            <button 
+                              onClick={() => setIsMuted(!isMuted)}
+                              className="absolute bottom-6 right-6 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors z-10"
+                            >
+                              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                            </button>
                           </div>
                         ) : (currentProject.cover_image_url || currentProject.image) ? (
                           <img 
@@ -608,9 +664,9 @@ const Lightbox = ({ isOpen, onClose, project, allProjects = [] }: { isOpen: bool
                 {currentProject.description_bottom && (
                   <div className="border-t border-gray-200 pt-16">
                     <div className="text-sm tracking-[0.2em] uppercase text-gray-400 mb-8 font-bold">ADDITIONAL DETAILS</div>
-                    <div className="text-lg text-gray-600 space-y-6 leading-relaxed max-w-4xl">
+                    <div className="text-lg text-gray-600 space-y-1 leading-relaxed max-w-4xl">
                       {currentProject.description_bottom.split('\n').map((paragraph: string, i: number) => (
-                        <p key={i} className="min-h-[1rem]">{paragraph}</p>
+                        <p key={i} className={paragraph.trim() === '' ? "h-2" : ""}>{paragraph}</p>
                       ))}
                     </div>
                   </div>
@@ -655,25 +711,37 @@ const Lightbox = ({ isOpen, onClose, project, allProjects = [] }: { isOpen: bool
             <div className="min-h-screen flex flex-col items-center p-4 py-24 md:p-12 md:py-24">
               <div className="relative w-full max-w-6xl flex flex-col items-center my-auto" onClick={(e) => e.stopPropagation()}>
                 {galleryImages[selectedImageIndex].media_type === 'youtube' ? (
-                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black">
+                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black relative">
                     <iframe 
-                      src={`${getYouTubeEmbedUrl(galleryImages[selectedImageIndex].video_url)}?autoplay=1&mute=1&loop=1&playlist=${galleryImages[selectedImageIndex].video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
-                      className="w-full h-full object-cover"
-                      style={{ minWidth: '160vh' }}
+                      src={`${getYouTubeEmbedUrl(galleryImages[selectedImageIndex].video_url)}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${galleryImages[selectedImageIndex].video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}`}
+                      className={`absolute top-0 left-1/2 -translate-x-1/2 ${galleryImages[selectedImageIndex].fit_small === 'width' ? 'w-full h-auto aspect-video' : 'h-full aspect-video'}`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                       allowFullScreen
                     ></iframe>
+                    <button 
+                      onClick={() => setIsMuted(!isMuted)}
+                      className="absolute bottom-6 right-6 w-10 h-10 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+                    >
+                      {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                    </button>
                   </div>
                 ) : galleryImages[selectedImageIndex].media_type === 'video' ? (
-                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+                  <div className="w-full h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-black flex items-center justify-center relative">
                     <video 
                       src={galleryImages[selectedImageIndex].video_url} 
                       controls 
                       autoPlay 
-                      muted
+                      muted={isMuted}
                       loop
-                      className="w-full h-full object-cover"
+                      className={`absolute top-0 left-1/2 -translate-x-1/2 ${galleryImages[selectedImageIndex].fit_small === 'width' ? 'w-full h-auto object-contain' : 'h-full object-cover'}`}
+                      style={galleryImages[selectedImageIndex].fit_small === 'width' ? {} : { minWidth: '160vh' }}
                     ></video>
+                    <button 
+                      onClick={() => setIsMuted(!isMuted)}
+                      className="absolute bottom-6 right-6 w-10 h-10 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-10"
+                    >
+                      {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                    </button>
                   </div>
                 ) : galleryImages[selectedImageIndex].url ? (
                   <motion.img 
@@ -934,28 +1002,28 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
                         }
                       }}
                     >
-                      <div className="w-full h-full pointer-events-none bg-gray-200">
-                        {rel === 0 && proj.cover_media_type === 'youtube' ? (
+                      <div className="w-full h-full pointer-events-none bg-gray-200 relative overflow-hidden">
+                        {proj.cover_media_type === 'youtube' ? (
                           <iframe 
                             src={`${getYouTubeEmbedUrl(proj.cover_video_url)}?autoplay=1&mute=1&loop=1&playlist=${proj.cover_video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`}
-                            className="w-full h-full object-cover"
-                            style={{ minWidth: '177.77vh' }}
+                            className={`absolute top-0 left-1/2 -translate-x-1/2 ${proj.fit_large === 'width' ? 'w-full h-auto aspect-video' : 'h-full aspect-video'}`}
                             allow="autoplay; encrypted-media"
                           ></iframe>
-                        ) : rel === 0 && proj.cover_media_type === 'video' ? (
+                        ) : proj.cover_media_type === 'video' ? (
                           <video 
                             src={proj.cover_video_url} 
                             autoPlay 
                             muted 
                             loop 
                             playsInline
-                            className="w-full h-full object-cover"
+                            className={`absolute top-0 left-1/2 -translate-x-1/2 ${proj.fit_large === 'width' ? 'w-full h-auto object-contain' : 'h-full object-cover'}`}
                           ></video>
                         ) : (
                           <ParallaxImage 
                             src={proj.cover_image_url || proj.image || null} 
                             alt={proj.seo_alt_text || proj.title} 
                             className="w-full h-full"
+                            fit={proj.fit_large === 'width' ? 'contain' : 'cover'}
                           />
                         )}
                       </div>
@@ -1165,7 +1233,7 @@ const LetsTalk = ({ data, settings, index = 0, sticky = true }: { data: any, set
       </div>
       <motion.section 
         initial={{ opacity: 1 }}
-        className={`relative z-0 h-screen bg-redd-dark px-6 md:px-16 lg:px-24 flex flex-col justify-end pb-4 ${sticky ? 'sticky top-0' : 'relative'} overflow-hidden ${data?.title_align === 'left' ? 'items-start text-left' : 'items-center text-center'}`}
+        className={`relative z-0 h-screen bg-redd-dark flex flex-col justify-end pb-4 ${sticky ? 'sticky top-0' : 'relative'} overflow-hidden ${data?.title_align === 'left' ? 'items-start text-left' : 'items-center text-center'}`}
         style={{ borderTopLeftRadius: '0', borderTopRightRadius: '0', zIndex: index, pointerEvents }}
       >
         <motion.div style={{ 
@@ -1185,16 +1253,37 @@ const LetsTalk = ({ data, settings, index = 0, sticky = true }: { data: any, set
           scale: sticky ? 1 : bgScale
         }}>
           <div className="relative w-full h-full bg-redd-dark overflow-hidden" style={{ borderTopLeftRadius: '0', borderTopRightRadius: '0' }}>
-            {data?.image_url && (
+            {data?.media_type === 'youtube' ? (
+              <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
+                <iframe 
+                  src={`${getYouTubeEmbedUrl(data.video_url)}?autoplay=1&mute=1&loop=1&playlist=${data.video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`}
+                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'min-w-[101vw] h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'h-full scale-[1.1]'} opacity-80`}
+                  style={data?.fit === 'width' || data?.fit === 'height' ? { aspectRatio: '16/9' } : { minWidth: '177.77vh' }}
+                  allow="autoplay; encrypted-media"
+                ></iframe>
+              </div>
+            ) : data?.media_type === 'video' ? (
+              <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
+                <video 
+                  src={data.video_url} 
+                  autoPlay 
+                  muted 
+                  loop 
+                  playsInline
+                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'min-w-[101vw] h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'object-cover'} opacity-80`}
+                  style={data?.fit === 'width' || data?.fit === 'height' ? {} : { minWidth: '177.77vh' }}
+                ></video>
+              </div>
+            ) : data?.image_url ? (
               <div className="absolute inset-0 w-full h-full overflow-hidden">
                 <img 
                   src={data.image_url} 
                   alt="Let's talk background" 
-                  className="w-full h-full object-cover opacity-100"
+                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'min-w-[101vw] h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'w-full h-full object-cover'} opacity-100`}
                   referrerPolicy="no-referrer"
                 />
               </div>
-            )}
+            ) : null}
           </div>
         </motion.div>
         
