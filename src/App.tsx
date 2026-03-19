@@ -1,6 +1,6 @@
 import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail, Lock, Play, Volume2, VolumeX } from "lucide-react";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, memo, useMemo, useCallback } from "react";
 import { Link } from 'react-router-dom';
 import { supabase, Work } from './lib/supabase';
 
@@ -41,19 +41,26 @@ const ParallaxImage = React.memo(({ src, alt, className, fit = 'cover' }: { src:
   );
 });
 
-const Navbar = ({ onMenuClick, settings }: { onMenuClick: () => void, settings: any }) => {
+const Navbar = memo(({ onMenuClick, settings }: { onMenuClick: () => void, settings: any }) => {
   const [scrolled, setScrolled] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 pt-6 pb-6 transition-all duration-500 ${scrolled ? 'bg-gradient-to-b from-redd-light/100 via-redd-light/40 to-transparent text-redd-dark' : 'text-white'}`}>
+    <nav className={`${isMobile ? 'absolute' : 'fixed'} top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 pt-6 pb-6 transition-all duration-500 ${scrolled ? 'bg-gradient-to-b from-redd-light/100 via-redd-light/40 to-transparent text-redd-dark' : 'text-white'}`}>
       <Link 
         to="/" 
         onClick={(e) => {
@@ -84,7 +91,7 @@ const Navbar = ({ onMenuClick, settings }: { onMenuClick: () => void, settings: 
           </div>
         )}
       </Link>
-      <div className="flex items-center absolute right-6 md:right-12">
+      <div className={`flex items-center ${isMobile ? 'fixed' : 'absolute'} right-6 md:right-12`}>
         <button onClick={onMenuClick} className="flex items-center hover:opacity-70 transition-opacity">
           <Menu size={32} strokeWidth={2.5} />
         </button>
@@ -93,7 +100,15 @@ const Navbar = ({ onMenuClick, settings }: { onMenuClick: () => void, settings: 
   );
 };
 
-const Hero = ({ data, settings }: { data: any, settings: any }) => {
+const Hero = memo(({ data, settings }: { data: any, settings: any }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -106,6 +121,80 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
   const subtitleSize = settings?.section1_subtitle_size || 'text-sm md:text-base';
   const descSize = settings?.section1_desc_size || 'text-lg md:text-xl';
 
+  if (isMobile) {
+    return (
+      <section ref={ref} className="relative z-0 h-screen bg-redd-dark flex flex-col justify-end pb-4 items-start text-left overflow-hidden">
+        <div className="absolute inset-0 w-full h-full overflow-hidden -z-10">
+          {data?.media_type === 'youtube' ? (
+            <div className="w-full h-full bg-black overflow-hidden relative">
+              <iframe 
+                src={`${getYouTubeEmbedUrl(data.video_url)}?autoplay=1&mute=1&loop=1&playlist=${data.video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-auto"
+                style={{ minWidth: '177.77vh', aspectRatio: '16/9' }}
+                allow="autoplay; encrypted-media"
+              ></iframe>
+            </div>
+          ) : data?.media_type === 'video' ? (
+            <div className="w-full h-full bg-black overflow-hidden relative">
+              <video 
+                src={data.video_url} 
+                autoPlay 
+                muted 
+                loop 
+                playsInline
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-auto object-cover"
+                style={{ minWidth: '177.77vh' }}
+              ></video>
+            </div>
+          ) : data?.image_url ? (
+            <img 
+              src={data.image_url} 
+              alt="Hero background" 
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-full w-auto object-cover opacity-100"
+              style={{ minWidth: '177.77vh' }}
+              referrerPolicy="no-referrer"
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+        </div>
+
+        <div className="relative z-10 p-6 pb-24 w-full">
+          {data?.subtitle && (
+            <div className={`${subtitleSize} tracking-[0.3em] uppercase mb-4 font-bold opacity-80 text-white`}>
+              {data.subtitle}
+            </div>
+          )}
+          <h1 className={`text-white font-serif ${titleSize} leading-[1.1] mb-6`}>
+            {data?.title || ""}
+          </h1>
+          {data?.description && (
+            <p className={`mb-8 ${descSize} text-gray-300 max-w-2xl`}>
+              {data.description}
+            </p>
+          )}
+          {data?.link_text && data?.link_url && (
+            <a 
+              href={data.link_url}
+              className="inline-flex items-center gap-4 text-sm uppercase tracking-widest border border-white px-8 py-4 hover:bg-white hover:text-black transition-colors text-white"
+            >
+              {data.link_text} <ArrowRight size={20} />
+            </a>
+          )}
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+          <span className="text-[10px] uppercase tracking-[0.3em] text-white/50">Scroll</span>
+          <motion.div 
+            animate={{ y: [0, 10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-px h-12 bg-gradient-to-b from-white/50 to-transparent"
+          />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section ref={ref} className="relative z-0 h-[100vh] w-full bg-redd-dark">
       <div className="absolute top-0 left-0 h-full w-full overflow-hidden -z-10">
@@ -114,7 +203,7 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
             <div className="w-full h-full bg-black overflow-hidden relative">
               <iframe 
                 src={`${getYouTubeEmbedUrl(data.video_url)}?autoplay=1&mute=1&loop=1&playlist=${data.video_url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/)?.[2] || ''}&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1`}
-                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'h-full scale-[1.1]'}`}
+                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : (isMobile ? 'h-full w-auto' : 'h-full scale-[1.1]')}`}
                 style={data?.fit === 'width' || data?.fit === 'height' ? { aspectRatio: '16/9' } : { minWidth: '177.77vh' }}
                 allow="autoplay; encrypted-media"
               ></iframe>
@@ -127,7 +216,7 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
                 muted 
                 loop 
                 playsInline
-                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'w-full h-full object-cover'}`}
+                className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : (isMobile ? 'h-full w-auto object-cover' : 'w-full h-full object-cover')}`}
                 style={data?.fit === 'width' || data?.fit === 'height' ? {} : { minWidth: '177.77vh' }}
               ></video>
             </div>
@@ -136,7 +225,7 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
               style={{ scale, transformOrigin: "bottom center" }}
               src={data.image_url} 
               alt="Hero background" 
-              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : 'w-full h-full object-cover'} opacity-100`}
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${data?.fit === 'width' ? 'w-full h-auto' : data?.fit === 'height' ? 'w-auto h-full' : (isMobile ? 'h-full w-auto object-cover' : 'w-full h-full object-cover')} opacity-100`}
               referrerPolicy="no-referrer"
             />
           ) : null}
@@ -190,7 +279,15 @@ const Hero = ({ data, settings }: { data: any, settings: any }) => {
   );
 };
 
-const Process = ({ data, settings, index = 0, sticky = true }: { data: any, settings: any, index?: number, sticky?: boolean }) => {
+const Process = memo(({ data, settings, index = 0, sticky = true }: { data: any, settings: any, index?: number, sticky?: boolean }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -228,7 +325,7 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
   const descSize = settings?.section2_desc_size || 'text-lg md:text-xl';
 
   return (
-    <section ref={ref} className={`${sticky ? 'sticky top-0' : 'relative'} z-10 h-[80vh] md:h-screen w-full bg-transparent`} style={{ borderTopLeftRadius: '3rem', borderTopRightRadius: '3rem', overflow: 'hidden', zIndex: index, pointerEvents }}>
+    <section ref={ref} className={`${sticky ? 'sticky top-0' : 'relative'} z-10 h-screen w-full bg-transparent`} style={{ borderTopLeftRadius: '3rem', borderTopRightRadius: '3rem', overflow: 'hidden', zIndex: index, pointerEvents }}>
       <motion.div style={{ 
         paddingTop: `calc(${padding} + 4rem)`, 
         paddingLeft: padding, 
@@ -270,7 +367,16 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
             </div>
           ) : data?.image_url ? (
             <motion.img 
-              style={{ y, height: data?.fit === 'width' || data?.fit === 'height' ? 'auto' : '130%', top: data?.fit === 'width' || data?.fit === 'height' ? '50%' : '-15%', left: '50%', x: '-50%', y: data?.fit === 'width' || data?.fit === 'height' ? '-50%' : y, width: data?.fit === 'width' ? '100%' : data?.fit === 'height' ? 'auto' : '100%', height: data?.fit === 'height' ? '100%' : data?.fit === 'width' ? 'auto' : '130%', position: 'absolute', objectFit: data?.fit === 'width' || data?.fit === 'height' ? 'contain' : 'cover' }}
+              style={{ 
+                top: data?.fit === 'width' || data?.fit === 'height' ? '50%' : '-15%', 
+                left: '50%', 
+                x: '-50%', 
+                y: data?.fit === 'width' || data?.fit === 'height' ? '-50%' : y, 
+                width: data?.fit === 'width' ? '100%' : data?.fit === 'height' ? 'auto' : '100%', 
+                height: data?.fit === 'height' ? '100%' : data?.fit === 'width' ? 'auto' : '130%', 
+                position: 'absolute', 
+                objectFit: data?.fit === 'width' || data?.fit === 'height' ? 'contain' : 'cover' 
+              }}
               src={data.image_url} 
               alt="Process background" 
               className="opacity-80"
@@ -280,36 +386,38 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
         </div>
 
         {/* Large Absolute Text */}
-        <motion.div 
-          style={{ y: textY }} 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 1 }}
-          className={`absolute inset-0 p-6 md:p-16 lg:p-24 pointer-events-none flex flex-col justify-center md:pt-32 z-10 ${data?.title_align === 'center' ? 'items-center text-center' : 'items-start text-left'}`}
-        >
-          {data?.subtitle && (
-            <div className={`${subtitleSize} tracking-[0.3em] uppercase mb-6 md:mb-8 font-bold opacity-80 text-white pointer-events-auto`}>
-              {data.subtitle}
-            </div>
-          )}
-          <h2 className={`${titleSize} font-serif max-w-5xl leading-[1.1]`}>
-            {data?.title || ""}
-          </h2>
-          {data?.description && (
-            <p className={`mt-6 ${descSize} text-gray-300 max-w-2xl pointer-events-auto`}>
-              {data.description}
-            </p>
-          )}
-          {data?.link_text && data?.link_url && (
-            <a 
-              href={data.link_url}
-              className="mt-8 inline-flex items-center gap-4 text-sm md:text-base uppercase tracking-widest border border-white px-8 py-4 hover:bg-white hover:text-black transition-colors text-white pointer-events-auto w-fit"
-            >
-              {data.link_text} <ArrowRight size={20} />
-            </a>
-          )}
-        </motion.div>
+        {!isMobile && (
+          <motion.div 
+            style={{ y: textY }} 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 1 }}
+            className={`absolute inset-0 p-6 md:p-16 lg:p-24 pointer-events-none flex flex-col justify-center md:pt-32 z-10 ${data?.title_align === 'center' ? 'items-center text-center' : 'items-start text-left'}`}
+          >
+            {data?.subtitle && (
+              <div className={`${subtitleSize} tracking-[0.3em] uppercase mb-6 md:mb-8 font-bold opacity-80 text-white pointer-events-auto`}>
+                {data.subtitle}
+              </div>
+            )}
+            <h2 className={`${titleSize} font-serif max-w-5xl leading-[1.1]`}>
+              {data?.title || ""}
+            </h2>
+            {data?.description && (
+              <p className={`mt-6 ${descSize} text-gray-300 max-w-2xl pointer-events-auto`}>
+                {data.description}
+              </p>
+            )}
+            {data?.link_text && data?.link_url && (
+              <a 
+                href={data.link_url}
+                className="mt-8 inline-flex items-center gap-4 text-sm md:text-base uppercase tracking-widest border border-white px-8 py-4 hover:bg-white hover:text-black transition-colors text-white pointer-events-auto w-fit"
+              >
+                {data.link_text} <ArrowRight size={20} />
+              </a>
+            )}
+          </motion.div>
+        )}
 
         <motion.div 
           style={{ opacity: 1 }}
@@ -339,14 +447,14 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
         </motion.div>
 
         {/* Mobile List */}
-        <div className="relative z-20 flex md:hidden flex-col justify-end h-full w-full p-6 pb-12 gap-6">
+        <div className="relative z-20 flex md:hidden flex-col justify-between h-full w-full p-6 pt-24 pb-12">
           {steps.map((step, i) => (
-            <Link to={step.link} key={i} className="border-b border-white/20 pb-4 last:border-0 block hover:opacity-80 transition-opacity">
-              <h3 className="text-2xl font-bold mb-2 flex items-center justify-between">
+            <Link to={step.link} key={i} className="border-b border-white/20 pb-6 last:border-0 block hover:opacity-80 transition-opacity flex-1 flex flex-col justify-center">
+              <h3 className="text-2xl font-bold mb-2 flex items-center justify-between uppercase tracking-widest">
                 {step.title}
                 <ArrowRight size={20} className="opacity-50" />
               </h3>
-              <p className="text-gray-300 text-sm">{step.desc}</p>
+              <p className="text-gray-300 text-sm line-clamp-2">{step.desc}</p>
             </Link>
           ))}
         </div>
@@ -359,7 +467,7 @@ const Process = ({ data, settings, index = 0, sticky = true }: { data: any, sett
 const baseProjects: any[] = [];
 const featuredProjects: any[] = [];
 
-const Lightbox = ({ isOpen, onClose, project, allProjects = [] }: { isOpen: boolean, onClose: () => void, project: any, allProjects?: any[] }) => {
+const Lightbox = memo(({ isOpen, onClose, project, allProjects = [] }: { isOpen: boolean, onClose: () => void, project: any, allProjects?: any[] }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [currentProject, setCurrentProject] = useState<any>(project);
@@ -797,7 +905,15 @@ const Lightbox = ({ isOpen, onClose, project, allProjects = [] }: { isOpen: bool
   );
 };
 
-const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuClick, onOpenLightbox, index = 0, sticky = true, showOverlay = true }: { title: string, galleryId?: string, projects: any[], isLast?: boolean, onMenuClick?: () => void, onOpenLightbox?: (project: any, projects?: any[]) => void, key?: string | number, index?: number, sticky?: boolean, showOverlay?: boolean }) => {
+const HorizontalGallery = memo(({ title, galleryId, projects, isLast = false, onMenuClick, onOpenLightbox, index = 0, sticky = true, showOverlay = true }: { title: string, galleryId?: string, projects: any[], isLast?: boolean, onMenuClick?: () => void, onOpenLightbox?: (project: any, projects?: any[]) => void, key?: string | number, index?: number, sticky?: boolean, showOverlay?: boolean }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -821,7 +937,7 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
   });
 
   const isPersonaggi = title === 'Personaggi' || title === 'PERSONAGGI';
-  const padding = useTransform(entranceProgress, [0.4, 1], ["24px", "0px"]);
+  const padding = useTransform(entranceProgress, [0.4, 1], [isMobile ? "0px" : "24px", "0px"]);
   const bottomPadding = useTransform(entranceProgress, [0.4, 1], [
     isLast ? "62px" : (isPersonaggi ? "24px" : "24px"),
     isLast ? "38px" : (isPersonaggi ? "0px" : "0px")
@@ -863,6 +979,30 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
     const totalVMargin = isPersonaggi ? '6rem' : '4rem';
     const smallVMargin = isPersonaggi ? '9rem' : '8rem';
     const smallTotalVMargin = isPersonaggi ? '18rem' : '16rem';
+
+    if (isMobile) {
+      if (rel === 0) {
+        return {
+          width: '100vw',
+          height: '100vh',
+          left: '0vw',
+          top: '0px',
+          zIndex: 40,
+          opacity: 1,
+          borderRadius: '0px',
+        };
+      } else {
+        return {
+          width: '100vw',
+          height: '100vh',
+          left: rel > 0 ? '100vw' : '-100vw',
+          top: '0px',
+          zIndex: 10,
+          opacity: 0,
+          borderRadius: '0px',
+        };
+      }
+    }
 
     if (rel === 0) {
       return {
@@ -934,40 +1074,52 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
         {/* Height is calculated to make the 4rem (64px) rounding start ~20px (0.5cm) below the image */}
         {isLast && (
           <div 
-            className="absolute top-0 left-0 w-full h-[calc(100%+52px)] bg-[#F7F7F5]" 
+            className={`absolute top-0 left-0 w-full h-[calc(100%+52px)] ${isMobile ? 'bg-black' : 'bg-[#F7F7F5]'}`} 
             style={{ 
               zIndex: -1,
-              clipPath: 'inset(0 0 0 0 round 0 0 3rem 3rem)'
+              clipPath: isMobile ? 'none' : 'inset(0 0 0 0 round 0 0 3rem 3rem)'
             }} 
           />
         )}
         {!isLast && (
-          <div className="absolute inset-0 bg-[#F7F7F5] -z-10" />
+          <div className={`absolute inset-0 ${isMobile ? 'bg-black' : 'bg-[#F7F7F5]'} -z-10`} />
         )}
-        <div className={`relative w-full h-full ${isLast ? '' : 'overflow-hidden'}`} style={{ borderBottomLeftRadius: isLast ? '3rem' : '0' }}>
+        <div className="relative w-full h-full overflow-hidden" style={{ borderBottomLeftRadius: (isLast && !isMobile) ? '3rem' : '0' }}>
           <motion.div style={{ opacity: entranceOpacity }} className="w-full h-full">
 
       {/* Header aligned with the small image */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8 }}
-        className={`absolute ${isPersonaggi ? 'top-6 md:top-12' : 'top-3 md:top-6'} left-[calc(65vw+2rem)] w-[26vw] flex flex-col items-center pointer-events-none z-50 gap-1`}
-      >
-        <h3 className="text-xl md:text-3xl font-sans uppercase tracking-tight text-redd-dark font-medium mb-0">{title}</h3>
-        {projects && projects.length > 0 && galleryId && (
-          <Link 
-            to={`/gallery/${galleryId}`}
-            onClick={() => {
-              sessionStorage.setItem('homeScrollPos', window.scrollY.toString());
-            }}
-            className="pointer-events-auto shadow-xl px-8 py-3.5 text-[10px] md:text-xs uppercase tracking-widest hover:bg-redd-dark hover:text-white transition-all flex items-center justify-center gap-2 bg-white whitespace-nowrap rounded-none font-bold text-redd-dark"
-          >
-            APRI GALLERIA <ArrowRight size={12} />
-          </Link>
-        )}
-      </motion.div>
+      {!isMobile && (
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
+          className={`absolute ${isPersonaggi ? 'top-6 md:top-12' : 'top-3 md:top-6'} left-[calc(65vw+2rem)] w-[26vw] flex flex-col items-center pointer-events-none z-50 gap-1`}
+        >
+          <h3 className="text-xl md:text-3xl font-sans uppercase tracking-tight text-redd-dark font-medium mb-0">{title}</h3>
+          {projects && projects.length > 0 && galleryId && (
+            <Link 
+              to={`/gallery/${galleryId}`}
+              onClick={() => {
+                sessionStorage.setItem('homeScrollPos', window.scrollY.toString());
+              }}
+              className="pointer-events-auto shadow-xl px-8 py-3.5 text-[10px] md:text-xs uppercase tracking-widest hover:bg-redd-dark hover:text-white transition-all flex items-center justify-center gap-2 bg-white whitespace-nowrap rounded-none font-bold text-redd-dark"
+            >
+              APRI GALLERIA <ArrowRight size={12} />
+            </Link>
+          )}
+        </motion.div>
+      )}
+
+      {/* Mobile Navigation Arrow */}
+      {isMobile && projects.length > 1 && (
+        <button 
+          onClick={handleNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-[60] w-12 h-12 bg-white/10 backdrop-blur-md text-white rounded-full flex items-center justify-center border border-white/20"
+        >
+          <ChevronRight size={24} />
+        </button>
+      )}
 
       {/* Images Layer */}
       <div className="absolute inset-x-0 top-0 bottom-4 md:bottom-6 z-20">
@@ -1082,16 +1234,32 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
               </p>
             </div>
 
-            <div>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onOpenLightbox) onOpenLightbox(currentProject);
-                }} 
-                className="inline-flex items-center gap-2 text-sm uppercase tracking-widest hover:opacity-70 transition-opacity pointer-events-auto cursor-pointer"
-              >
-                Visit project <ArrowRight size={16} />
-              </button>
+            <div className={`flex flex-col ${isMobile ? 'items-center text-center' : 'items-start'} gap-4 md:gap-6`}>
+              {isMobile && (
+                <h3 className="text-white font-bold uppercase tracking-[0.3em] text-sm mb-2">{title}</h3>
+              )}
+              <div className="flex items-center gap-4 md:gap-6">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenLightbox) onOpenLightbox(currentProject);
+                  }} 
+                  className={`inline-flex items-center gap-1 md:gap-2 ${isMobile ? 'text-[11px]' : 'text-sm'} uppercase tracking-widest hover:opacity-70 transition-opacity pointer-events-auto cursor-pointer`}
+                >
+                  Visit project <ArrowRight size={isMobile ? 14 : 16} />
+                </button>
+                {isMobile && galleryId && (
+                  <Link 
+                    to={`/gallery/${galleryId}`}
+                    onClick={() => {
+                      sessionStorage.setItem('homeScrollPos', window.scrollY.toString());
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] uppercase tracking-widest hover:opacity-70 transition-opacity pointer-events-auto cursor-pointer"
+                  >
+                    apri galleria <ArrowRight size={14} />
+                  </Link>
+                )}
+              </div>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -1101,44 +1269,46 @@ const HorizontalGallery = ({ title, galleryId, projects, isLast = false, onMenuC
 </motion.div>
 
   {/* UI Overlay (Buttons, Hint, Counter) */}
-  <motion.div style={{ opacity: entranceOpacity }} className="absolute inset-x-0 bottom-0 h-[12rem] pointer-events-none z-[500] flex items-end pb-12">
-    <div className="w-[calc(65vw+2rem)] pointer-events-none" />
-    <div className="flex-1 flex flex-col justify-center items-center pr-8 md:pr-12 pointer-events-none gap-4">
-      {/* Navigation Controls */}
-      {projects.length > 1 && (
-        <div className="flex items-center gap-6 pointer-events-auto relative z-[510]">
-          <button 
-            className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePrev();
-            }}
-            title="Previous"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          
-          <div className="flex flex-col items-center gap-0 pointer-events-none">
-            <span className="text-[10px] uppercase tracking-widest font-bold text-redd-dark/40">Navigation</span>
-            <div className="text-xl md:text-2xl font-sans tracking-tight text-redd-dark font-medium">
-              {safeActiveIndex + 1} <span className="text-redd-dark/30 mx-1">/</span> {projects.length}
+  {!isMobile && (
+    <motion.div style={{ opacity: entranceOpacity }} className="absolute inset-x-0 bottom-0 h-[12rem] pointer-events-none z-[500] flex items-end pb-12">
+      <div className="w-[calc(65vw+2rem)] pointer-events-none" />
+      <div className="flex-1 flex flex-col justify-center items-center pr-8 md:pr-12 pointer-events-none gap-4">
+        {/* Navigation Controls */}
+        {projects.length > 1 && (
+          <div className="flex items-center gap-6 pointer-events-auto relative z-[510]">
+            <button 
+              className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrev();
+              }}
+              title="Previous"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            
+            <div className="flex flex-col items-center gap-0 pointer-events-none">
+              <span className="text-[10px] uppercase tracking-widest font-bold text-redd-dark/40">Navigation</span>
+              <div className="text-xl md:text-2xl font-sans tracking-tight text-redd-dark font-medium">
+                {safeActiveIndex + 1} <span className="text-redd-dark/30 mx-1">/</span> {projects.length}
+              </div>
             </div>
-          </div>
 
-          <button 
-            className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleNext();
-            }}
-            title="Next"
-          >
-            <ChevronRight size={24} />
-          </button>
-        </div>
-      )}
-    </div>
-  </motion.div>
+            <button 
+              className="w-14 h-14 rounded-full bg-white text-redd-dark flex items-center justify-center shadow-xl hover:bg-redd-dark hover:text-white transition-all active:scale-90 cursor-pointer pointer-events-auto" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNext();
+              }}
+              title="Next"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  )}
     {showOverlay && !isLast && <motion.div style={{ opacity: overlayOpacity }} className="absolute inset-0 bg-black z-[600] pointer-events-none" />}
   </motion.section>
   );
@@ -1191,7 +1361,7 @@ const Team = () => {
   );
 };
 
-const LetsTalk = ({ data, settings, index = 0, sticky = true }: { data: any, settings: any, index?: number, sticky?: boolean }) => {
+const LetsTalk = memo(({ data, settings, index = 0, sticky = true }: { data: any, settings: any, index?: number, sticky?: boolean }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -1324,7 +1494,7 @@ const LetsTalk = ({ data, settings, index = 0, sticky = true }: { data: any, set
   );
 };
 
-const Footer = ({ settings }: { settings: any }) => {
+const Footer = memo(({ settings }: { settings: any }) => {
   const { scrollYProgress } = useScroll();
   
   // Create a more organic and fluid elastic bounce effect at the end of scroll
@@ -1368,7 +1538,7 @@ const Footer = ({ settings }: { settings: any }) => {
   return (
     <motion.footer 
       style={{ y: springY }}
-      className="w-full bg-[#000000] text-[#8e9299] pt-32 md:pt-48 pb-12 px-6 md:px-16 lg:px-24 flex flex-col justify-center relative z-50"
+      className="w-full bg-[#000000] text-[#8e9299] pt-12 md:pt-48 pb-12 px-6 md:px-16 lg:px-24 flex flex-col justify-center relative z-50"
     >
       <motion.div 
         style={{ y: contentSpringY }}
@@ -1379,16 +1549,8 @@ const Footer = ({ settings }: { settings: any }) => {
         className="flex flex-col md:flex-row justify-between items-start w-full max-w-7xl mx-auto mb-16 gap-12 md:gap-0"
       >
         
-        {/* Left Column - Navigation */}
-        <motion.div variants={itemVariants} className="flex flex-col gap-4 text-left flex-1">
-          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20 mb-4">Navigation</h4>
-          <Link to="/" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Home</Link>
-          <Link to="/about" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">About</Link>
-          <Link to="/contact" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Contact</Link>
-        </motion.div>
-
-        {/* Center Column - Brand */}
-        <motion.div variants={itemVariants} className="flex flex-col flex-1 w-full">
+        {/* Brand Column - Top on Mobile, Center on Desktop */}
+        <motion.div variants={itemVariants} className="flex flex-col flex-1 w-full order-1 md:order-2">
           <div className={`w-full ${settings?.footer_title_align || 'text-center'}`}>
             <Link 
               to="/" 
@@ -1427,20 +1589,31 @@ const Footer = ({ settings }: { settings: any }) => {
             )}
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-12 md:mb-0">
             <Link to="/admin" className="hover:text-white transition-colors flex items-center justify-center gap-2 text-[10px] tracking-[0.2em] uppercase opacity-50 hover:opacity-100">
               <Lock size={12} /> Admin Panel
             </Link>
           </div>
         </motion.div>
 
-        {/* Right Column - Work Categories */}
-        <motion.div variants={itemVariants} className="flex flex-col gap-4 text-right flex-1 w-full">
-          <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20 mb-4">Work</h4>
-          <Link to="/work?category=FILM" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Film</Link>
-          <Link to="/work?category=PERSONAGGI" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Personaggi</Link>
-          <Link to="/work?category=YOUTUBE" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">YouTube</Link>
-        </motion.div>
+        {/* Navigation & Work Columns - Side by side on Mobile, Left/Right on Desktop */}
+        <div className="flex flex-row justify-between w-full md:contents order-2 md:order-1">
+          {/* Left Column - Navigation */}
+          <motion.div variants={itemVariants} className="flex flex-col gap-4 text-left flex-1 md:order-1">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20 mb-4">Navigation</h4>
+            <Link to="/" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Home</Link>
+            <Link to="/about" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">About</Link>
+            <Link to="/contact" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Contact</Link>
+          </motion.div>
+
+          {/* Right Column - Work Categories */}
+          <motion.div variants={itemVariants} className="flex flex-col gap-4 text-right flex-1 md:order-3">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20 mb-4">Work</h4>
+            <Link to="/work?category=FILM" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Film</Link>
+            <Link to="/work?category=PERSONAGGI" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">Personaggi</Link>
+            <Link to="/work?category=YOUTUBE" className="text-sm tracking-[0.2em] uppercase hover:text-white transition-colors">YouTube</Link>
+          </motion.div>
+        </div>
 
       </motion.div>
 
@@ -1464,7 +1637,7 @@ const Footer = ({ settings }: { settings: any }) => {
   );
 };
 
-const MenuOverlay = ({ isOpen, onClose, galleryNames, works, onOpenLightbox, settings, groupedWorks }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any, projects?: any[]) => void; settings: any; groupedWorks: Record<string, any[]> }) => {
+const MenuOverlay = memo(({ isOpen, onClose, galleryNames, works, onOpenLightbox, settings, groupedWorks }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any, projects?: any[]) => void; settings: any; groupedWorks: Record<string, any[]> }) => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [expandedSubItem, setExpandedSubItem] = useState<string | null>(null);
 
@@ -1733,7 +1906,7 @@ export default function App() {
         
         const { data: worksData, error: worksError } = await supabase
           .from('works')
-          .select('*')
+          .select('id, title, gallery_id, group_name, cover_media_type, cover_video_url, cover_image_url, display_order, fit_large, seo_alt_text, image')
           .order('display_order', { ascending: true });
         
         if (worksError) {
@@ -1741,7 +1914,7 @@ export default function App() {
           // Fallback to created_at if display_order doesn't exist
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('works')
-            .select('*')
+            .select('id, title, gallery_id, group_name, cover_media_type, cover_video_url, cover_image_url, display_order, fit_large, seo_alt_text, image')
             .order('created_at', { ascending: false });
           
           if (fallbackError) {
@@ -1894,12 +2067,14 @@ export default function App() {
   const hasNoData = works.length === 0;
 
   // Group works by group_name dynamically
-  const groupedWorks = works.reduce((acc, work) => {
-    const group = work.group_name || 'galleria 1';
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(work);
-    return acc;
-  }, {} as Record<string, Work[]>);
+  const groupedWorks = useMemo(() => {
+    return works.reduce((acc, work) => {
+      const group = work.group_name || 'galleria 1';
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(work);
+      return acc;
+    }, {} as Record<string, Work[]>);
+  }, [works]);
 
   // Define the order of galleries. We prioritize the standard ones, then any others.
   const galleryOrder = ['galleria 3', 'galleria 2', 'galleria 1'];

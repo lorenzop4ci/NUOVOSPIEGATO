@@ -9,12 +9,15 @@
   --color-redd-accent: #6C7A65;
 }
 
-body {
+html, body {
   background-color: var(--color-redd-dark);
   color: var(--color-redd-dark);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
 }
 
 @layer utilities {
