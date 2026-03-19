@@ -1,4 +1,4 @@
-import React, { useState, memo } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, ArrowUpRight, ArrowRight } from "lucide-react";
 import { Link } from 'react-router-dom';
@@ -24,6 +24,17 @@ export const MenuOverlay = memo(({
 }: MenuOverlayProps) => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [expandedSubItem, setExpandedSubItem] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   const menuItems = [
     { name: "Home", path: "/" },
@@ -246,3 +257,6 @@ export const MenuOverlay = memo(({
     </AnimatePresence>
   );
 });
+
+export default MenuOverlay;
+

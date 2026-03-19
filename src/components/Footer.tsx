@@ -1,5 +1,7 @@
-import React, { memo } from "react";
-import { Instagram, Youtube, Facebook, MessageCircle, Linkedin, Mail, ArrowUpRight } from "lucide-react";
+import React, { useRef, memo } from "react";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { Instagram, Youtube, Facebook, MessageCircle, Linkedin, Mail, ArrowUpRight, Lock } from "lucide-react";
+import { Link } from 'react-router-dom';
 
 interface FooterProps {
   settings: any;
@@ -7,9 +9,24 @@ interface FooterProps {
 
 export const Footer = memo(({ settings }: FooterProps) => {
   const currentYear = new Date().getFullYear();
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end end"]
+  });
+
+  const footerY = useTransform(scrollYProgress, [0, 1], [100, 0]);
+  const footerScale = useTransform(scrollYProgress, [0, 1], [0.95, 1]);
   
+  // Elastic bounce effect
+  const springY = useSpring(footerY, { stiffness: 100, damping: 20 });
+
   return (
-    <footer className="bg-redd-dark text-redd-light py-24 px-6 md:px-16 lg:px-24">
+    <motion.footer 
+      ref={ref}
+      style={{ y: springY, scale: footerScale }}
+      className="relative z-[1000] bg-redd-dark text-redd-light py-24 px-6 md:px-16 lg:px-24 border-t border-white/5"
+    >
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">
           <div className="flex flex-col gap-8">
@@ -99,13 +116,18 @@ export const Footer = memo(({ settings }: FooterProps) => {
 
         <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] uppercase tracking-widest text-gray-500 font-medium">
           <div className="flex gap-8">
+            <Link to="/admin" className="hover:text-redd-light transition-colors flex items-center gap-1">
+              <Lock size={10} /> ADMIN
+            </Link>
             <a href="#" className="hover:text-redd-light transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-redd-light transition-colors">Cookie Policy</a>
-            <a href="#" className="hover:text-redd-light transition-colors">Terms of Service</a>
           </div>
           <p>© {currentYear} {settings.header_title || "SPIEGATO IN BREVE"}. All rights reserved.</p>
         </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 });
+
+export default Footer;
+

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, memo, useCallback } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { Link } from 'react-router-dom';
-import { ParallaxImage } from './ParallaxImage';
+import ParallaxImage from './ParallaxImage';
 import { getYouTubeEmbedUrl } from '../lib/utils';
 
 interface HorizontalGalleryProps {

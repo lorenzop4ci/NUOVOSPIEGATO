@@ -1,103 +1,11 @@
-import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
-import { Menu, ArrowRight, X, ArrowUpRight, Plus, Instagram, Youtube, Facebook, MessageCircle, ChevronLeft, ChevronRight, Linkedin, Mail, Lock, Play, Volume2, VolumeX } from "lucide-react";
-import React, { useRef, useState, useEffect, memo, useMemo, useCallback } from "react";
+import { motion, useScroll, useTransform, AnimatePresence, useSpring } from "framer-motion";
+import { X, Plus, Lock, ArrowRight, Instagram, Youtube, Linkedin, Mail, ChevronLeft, ChevronRight, ArrowUpRight, VolumeX, Volume2, Play } from "lucide-react";
+import React, { useState, useEffect, useMemo, memo, useRef } from "react";
 import { Link } from 'react-router-dom';
 import { supabase, Work } from './lib/supabase';
-
-const getYouTubeEmbedUrl = (url: string) => {
-  if (!url) return '';
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
-};
-
-const ParallaxImage = React.memo(({ src, alt, className, fit = 'cover' }: { src: string | null, alt?: string, className?: string, fit?: 'cover' | 'contain' }) => {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"]
-  });
-  const y = useTransform(scrollYProgress, [0, 1], ["-15%", "15%"]);
-
-  return (
-    <div ref={ref} className={`relative overflow-hidden ${className}`}>
-      <motion.div style={{ y, height: '130%', top: '-15%', width: '100%', position: 'absolute' }}>
-        <div className="w-full h-full transition-transform duration-700 group-hover:scale-110">
-          {src ? (
-            <img 
-              src={src} 
-              alt={alt} 
-              className={`w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
-              referrerPolicy="no-referrer"
-              draggable="false"
-              loading="eager"
-            />
-          ) : (
-            <div className="w-full h-full bg-transparent" />
-          )}
-        </div>
-      </motion.div>
-    </div>
-  );
-});
-
-const Navbar = memo(({ onMenuClick, settings }: { onMenuClick: () => void, settings: any }) => {
-  const [scrolled, setScrolled] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
-  return (
-    <nav className={`${isMobile ? 'absolute' : 'fixed'} top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 pt-6 pb-6 transition-all duration-500 ${scrolled ? 'bg-gradient-to-b from-redd-light/100 via-redd-light/40 to-transparent text-redd-dark' : 'text-white'}`}>
-      <Link 
-        to="/" 
-        onClick={(e) => {
-          if (window.location.pathname === '/') {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }}
-        className="flex flex-col hover:opacity-80 transition-opacity w-full"
-      >
-        {settings.header_logo ? (
-          <div className={`w-full flex ${settings.header_title_align === 'text-center' ? 'justify-center' : settings.header_title_align === 'text-right' ? 'justify-end' : 'justify-start'}`}>
-            <img 
-              src={settings.header_logo} 
-              alt="Logo" 
-              style={{ height: `${settings.header_logo_height || 40}px` }}
-              className={`w-auto object-contain ${!scrolled ? 'brightness-0 invert' : ''}`} 
-            />
-          </div>
-        ) : (
-          <div className={`w-fit flex flex-col items-center`}>
-            <div className={`${settings.header_title_size || 'text-xl'} font-bold tracking-tight uppercase text-center`}>
-              {settings.header_title || "SPIEGATO IN BREVE"}
-            </div>
-            <div className={`${settings.header_subtitle_size || 'text-[10px]'} tracking-[0.2em] uppercase opacity-70 text-center`}>
-              {settings.header_subtitle || "CINEMA & POP CULTURE"}
-            </div>
-          </div>
-        )}
-      </Link>
-      <div className={`flex items-center ${isMobile ? 'fixed' : 'absolute'} right-6 md:right-12`}>
-        <button onClick={onMenuClick} className="flex items-center hover:opacity-70 transition-opacity">
-          <Menu size={32} strokeWidth={2.5} />
-        </button>
-      </div>
-    </nav>
-  );
+import Navbar from './components/Navbar';
+import ParallaxImage from './components/ParallaxImage';
+import { getYouTubeEmbedUrl } from './lib/utils';
 
 const Hero = memo(({ data, settings }: { data: any, settings: any }) => {
   const [isMobile, setIsMobile] = useState(false);
@@ -276,7 +184,7 @@ const Hero = memo(({ data, settings }: { data: any, settings: any }) => {
       </motion.div>
     </section>
   );
-};
+});
 
 const Process = memo(({ data, settings, index = 0, sticky = true }: { data: any, settings: any, index?: number, sticky?: boolean }) => {
   const [isMobile, setIsMobile] = useState(false);
@@ -461,7 +369,7 @@ const Process = memo(({ data, settings, index = 0, sticky = true }: { data: any,
       </motion.div>
     </section>
   );
-};
+});
 
 const baseProjects: any[] = [];
 const featuredProjects: any[] = [];
@@ -902,7 +810,7 @@ const Lightbox = memo(({ isOpen, onClose, project, allProjects = [] }: { isOpen:
       </AnimatePresence>
     </>
   );
-};
+});
 
 const HorizontalGallery = memo(({ title, galleryId, projects, isLast = false, onMenuClick, onOpenLightbox, index = 0, sticky = true, showOverlay = true }: { title: string, galleryId?: string, projects: any[], isLast?: boolean, onMenuClick?: () => void, onOpenLightbox?: (project: any, projects?: any[]) => void, key?: string | number, index?: number, sticky?: boolean, showOverlay?: boolean }) => {
   const [isMobile, setIsMobile] = useState(false);
@@ -1311,53 +1219,10 @@ const HorizontalGallery = memo(({ title, galleryId, projects, isLast = false, on
     {showOverlay && !isLast && <motion.div style={{ opacity: overlayOpacity }} className="absolute inset-0 bg-black z-[600] pointer-events-none" />}
   </motion.section>
   );
-};
+});
 
 const Team = () => {
-  return (
-    <section className="py-24 md:py-40 px-6 md:px-16 lg:px-24 bg-redd-dark text-redd-light">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 1 }}
-          className="relative aspect-square md:aspect-[3/4] w-full overflow-hidden bg-redd-dark/50"
-        >
-          {/* Team image removed as per user request for empty backgrounds */}
-        </motion.div>
-        <div className="flex flex-col gap-8 md:pl-12">
-          <motion.h2 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-serif"
-          >
-            Multidisciplinaire <span className="italic text-redd-accent">team</span>
-          </motion.h2>
-          <motion.p 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-gray-400 leading-relaxed"
-          >
-            Onze ontwerpen komen tot stand door de nauwe samenwerking van landschapsarchitecten, ontwerpers en technische specialisten. Samen vertalen we uw wensen naar een kloppend en leefbaar ontwerp.
-          </motion.p>
-          <motion.button
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="self-start mt-4 flex items-center gap-2 text-sm uppercase tracking-widest border-b border-redd-light pb-1 hover:text-redd-accent hover:border-redd-accent transition-colors"
-          >
-            Leer ons kennen <ArrowRight size={16} />
-          </motion.button>
-        </div>
-      </div>
-    </section>
-  );
+  return null; // Removed as per user request for empty backgrounds or not needed anymore
 };
 
 const LetsTalk = memo(({ data, settings, index = 0, sticky = true }: { data: any, settings: any, index?: number, sticky?: boolean }) => {
@@ -1491,7 +1356,7 @@ const LetsTalk = memo(({ data, settings, index = 0, sticky = true }: { data: any
       </motion.section>
     </>
   );
-};
+});
 
 const Footer = memo(({ settings }: { settings: any }) => {
   const { scrollYProgress } = useScroll();
@@ -1634,7 +1499,7 @@ const Footer = memo(({ settings }: { settings: any }) => {
       </motion.div>
     </motion.footer>
   );
-};
+});
 
 const MenuOverlay = memo(({ isOpen, onClose, galleryNames, works, onOpenLightbox, settings, groupedWorks }: { isOpen: boolean; onClose: () => void; galleryNames: Record<string, string>; works: any[]; onOpenLightbox: (project: any, projects?: any[]) => void; settings: any; groupedWorks: Record<string, any[]> }) => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
@@ -1872,7 +1737,7 @@ const MenuOverlay = memo(({ isOpen, onClose, galleryNames, works, onOpenLightbox
       )}
     </AnimatePresence>
   );
-};
+});
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
