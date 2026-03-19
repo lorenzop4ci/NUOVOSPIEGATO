@@ -98,7 +98,6 @@ const Navbar = memo(({ onMenuClick, settings }: { onMenuClick: () => void, setti
       </div>
     </nav>
   );
-};
 
 const Hero = memo(({ data, settings }: { data: any, settings: any }) => {
   const [isMobile, setIsMobile] = useState(false);
